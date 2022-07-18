@@ -37,25 +37,27 @@ def login(id: int):
         profile = json.loads(result.text)
         while True:
             driver = get_driver(profile.get('email'))
-            # gmail = Gmail(driver, profile.get('email'), profile.get('password'), profile.get('recovery_email'))
-            # api.set_current_process(profile.get('email'), 'do login...')
-            # gmail.go_to_login_page()
-            # login_result = gmail.do_login()
-            # if login_result is True:
-            #     time.sleep(1)
-            #     driver.close()
-            #     time.sleep(5)
-            #     driver.quit()
-            #     api.set_current_process(profile.get('email'), '')
-            #     return True
-            # elif login_result == "Captcha":
-            #     driver.quit()
-            #     continue
-            # else:
-            #     time.sleep(1)
-            #     driver.quit()
-            #     api.set_current_process(profile.get('email'), '')
-            #     return False
+            return 'Finish!'
+        # return 'finish!'
+        # gmail = Gmail(driver, profile.get('email'), profile.get('password'), profile.get('recovery_email'))
+        # api.set_current_process(profile.get('email'), 'do login...')
+        # gmail.go_to_login_page()
+        # login_result = gmail.do_login()
+        # if login_result is True:
+        #     time.sleep(1)
+        #     driver.close()
+        #     time.sleep(5)
+        #     driver.quit()
+        #     api.set_current_process(profile.get('email'), '')
+        #     return True
+        # elif login_result == "Captcha":
+        #     driver.quit()
+        #     continue
+        # else:
+        #     time.sleep(1)
+        #     driver.quit()
+        #     api.set_current_process(profile.get('email'), '')
+        #     return False
 
 
 def random_sleep(x, y):
