@@ -37,25 +37,25 @@ def login(id: int):
         profile = json.loads(result.text)
         while True:
             driver = get_driver(profile.get('email'))
-            gmail = Gmail(driver, profile.get('email'), profile.get('password'), profile.get('recovery_email'))
-            api.set_current_process(profile.get('email'), 'do login...')
-            gmail.go_to_login_page()
-            login_result = gmail.do_login()
-            if login_result is True:
-                time.sleep(1)
-                driver.close()
-                time.sleep(5)
-                driver.quit()
-                api.set_current_process(profile.get('email'), '')
-                return True
-            elif login_result == "Captcha":
-                driver.quit()
-                continue
-            else:
-                time.sleep(1)
-                driver.quit()
-                api.set_current_process(profile.get('email'), '')
-                return False
+            # gmail = Gmail(driver, profile.get('email'), profile.get('password'), profile.get('recovery_email'))
+            # api.set_current_process(profile.get('email'), 'do login...')
+            # gmail.go_to_login_page()
+            # login_result = gmail.do_login()
+            # if login_result is True:
+            #     time.sleep(1)
+            #     driver.close()
+            #     time.sleep(5)
+            #     driver.quit()
+            #     api.set_current_process(profile.get('email'), '')
+            #     return True
+            # elif login_result == "Captcha":
+            #     driver.quit()
+            #     continue
+            # else:
+            #     time.sleep(1)
+            #     driver.quit()
+            #     api.set_current_process(profile.get('email'), '')
+            #     return False
 
 
 def random_sleep(x, y):
@@ -70,14 +70,16 @@ def get_driver(email):
     options.add_argument(
         f"--user-data-dir={os.path.join(os.path.dirname(__file__), 'profiles', email)}")
     # options.add_argument(f"--user-agent={ua.chrome()}")
-    # if headless:
-    #     options.add_argument('--headless')
-    #     options.add_argument('--disable-gpu')
-    # if proxy is not "":
-    #     options.add_argument(f'--proxy-server={proxy}')
+    options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
 
     options.page_load_strategy = 'eager'
     driver = uc.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=options)
+
+    driver.get('https://www.google.com')
+    driver.save_screenshot('screen.png')
+
     # stealth(driver,
     #         languages=["en-US", "en"],
     #         vendor="Google Inc.",
