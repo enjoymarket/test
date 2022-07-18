@@ -77,7 +77,7 @@ def get_driver(email):
     #     options.add_argument(f'--proxy-server={proxy}')
 
     options.page_load_strategy = 'eager'
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=options)
     # stealth(driver,
     #         languages=["en-US", "en"],
     #         vendor="Google Inc.",
