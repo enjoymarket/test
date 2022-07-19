@@ -15,6 +15,7 @@ load_dotenv()
 
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -28,6 +29,11 @@ app.add_middleware(
 @app.get("/")
 async def index():
     return "Hello, this is the index page, that's mean that all things are installed fine!"
+
+
+@app.get("/screen")
+async def index():
+    return FileResponse(path='screen.png', filename='screen.png', media_type='image/png')
 
 
 @app.get("/login/{id}")
