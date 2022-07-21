@@ -32,8 +32,26 @@ async def index():
 
 
 @app.get("/screen")
-async def index():
+async def screen():
     return FileResponse(path='screen.png', filename='screen.png', media_type='image/png')
+
+
+@app.get("/screen1")
+async def screen1():
+    return FileResponse(path='screen1.png', filename='screen1.png', media_type='image/png')
+
+
+@app.get("/path")
+async def path():
+    return f'{os.path.join(".", "profiles", "email")}'
+
+
+@app.get("/make")
+async def make():
+    directory = os.path.join(os.path.dirname(__file__), 'profiles', 'test')
+    # if not os.path.exists(direcory):
+    os.makedirs(directory)
+    return f'done!'
 
 
 @app.get("/login/{id}")
@@ -43,27 +61,29 @@ def login(id: int):
         profile = json.loads(result.text)
         while True:
             driver = get_driver(profile.get('email'))
-            return 'Finish!'
-        # return 'finish!'
-        # gmail = Gmail(driver, profile.get('email'), profile.get('password'), profile.get('recovery_email'))
-        # api.set_current_process(profile.get('email'), 'do login...')
-        # gmail.go_to_login_page()
-        # login_result = gmail.do_login()
-        # if login_result is True:
-        #     time.sleep(1)
-        #     driver.close()
-        #     time.sleep(5)
-        #     driver.quit()
-        #     api.set_current_process(profile.get('email'), '')
-        #     return True
-        # elif login_result == "Captcha":
-        #     driver.quit()
-        #     continue
-        # else:
-        #     time.sleep(1)
-        #     driver.quit()
-        #     api.set_current_process(profile.get('email'), '')
-        #     return False
+            gmail = Gmail(driver, profile.get('email'), profile.get('password'), profile.get('recovery_email'))
+            api.set_current_process(profile.get('email'), 'do login...')
+            gmail.go_to_login_page()
+            try:
+                login_result = gmail.do_login()
+                driver.save_screenshot('screen.png')
+                if login_result is True:
+                    time.sleep(7)
+                    driver.close()
+                    time.sleep(5)
+                    driver.quit()
+                    api.set_current_process(profile.get('email'), '')
+                    return True
+                elif login_result == "Captcha":
+                    driver.quit()
+                    continue
+                else:
+                    time.sleep(1)
+                    driver.quit()
+                    api.set_current_process(profile.get('email'), '')
+                    return False
+            except Exception as ex:
+                return ex
 
 
 def random_sleep(x, y):
@@ -73,20 +93,28 @@ def random_sleep(x, y):
 def get_driver(email):
     options = Options()
     options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
-    options.add_argument('--no-first-run --no-service-autorun --password-store=basic')
-    options.add_argument(f"--start-maximized")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--ignore-certificate-errors")
+    options.add_argument("--disable-extensions")
+    options.add_argument("disable-infobars")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-notifications")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--disable-device-discovery-notifications")
+    options.add_argument("--dns-prefetch-disable")
+    # options.add_argument("--single-process")
+    options.add_argument("--disk-cache-size=0")
+    options.add_argument("--lang=en")
+    options.add_argument("log-level=3")
     options.add_argument(
-        f"--user-data-dir={os.path.join(os.path.dirname(__file__), 'profiles', email)}")
-    # options.add_argument(f"--user-agent={ua.chrome()}")
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
+        "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/37.0.2062.94 Chrome/81.0.4044.113 Safari/537.36")
+
+    options.add_argument(f"--user-data-dir={os.path.join(os.path.dirname(__file__), 'profiles', email)}")
 
     options.page_load_strategy = 'eager'
-    driver = uc.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=options)
-
-    driver.get('https://www.google.com')
-    driver.save_screenshot('screen.png')
+    driver = uc.Chrome(options=options)
 
     # stealth(driver,
     #         languages=["en-US", "en"],
@@ -96,6 +124,12 @@ def get_driver(email):
     #         renderer="Intel Iris OpenGL Engine",
     #         fix_hairline=True,
     #         )
+
+    # driver.get('https://bot.sannysoft.com')
+    # time.sleep(5)
+    # driver.save_screenshot('screen.png')
+    # driver.quit()
+
     driver.set_page_load_timeout(30)
     handles = driver.window_handles
     if len(handles) > 1:

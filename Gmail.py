@@ -122,6 +122,7 @@ class Gmail:
     def do_login(self):
         # try:
         random_sleep(1, 2)
+        self.driver.save_screenshot('screen1.png')
         if "https://mail.google.com/mail" in self.driver.current_url:
             return True
         random_sleep(1, 2)
