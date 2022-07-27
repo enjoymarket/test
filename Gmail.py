@@ -318,9 +318,74 @@ class Gmail:
         self.driver.get(f'https://mail.google.com/mail/u/0/#search/in%3A{folder_name}+is%3Aunread')
 
     def filter_by_subject(self, folder_name='inbox', subject=''):
-        wait_until_internet_connectivity_is_good()
-        self.driver.get(
-            f'https://mail.google.com/mail/u/0/#search/in%3A{folder_name}+is%3Aunread+subject%3A{urllib.parse.quote(subject)}')
+        print(f'https://mail.google.com/mail/u/0/#search/in%3A{folder_name}+subject%3A{urllib.parse.quote(subject)}')
+        try:
+            self.driver.get(
+                f'https://mail.google.com/mail/u/0/#search/in%3A{folder_name}+subject%3A{urllib.parse.quote(subject)}')
+        except TimeoutException as ex:
+            self.filter_by_subject(folder_name, subject)
+
+    def create_filter_for_reply(self):
+        self.driver.find_element(By.XPATH, '//button[@gh="sda"]').click()
+        random_sleep(1, 3)
+        self.driver.find_element(By.XPATH, '//div[@class="aQh"]/input').send_keys('1')
+        random_sleep(1, 3)
+        self.driver.find_element(By.XPATH, '(//div[@class="aQj"]/div)[1]').click()
+        random_sleep(0.3, 0.8)
+        self.driver.find_element(By.XPATH, '((//div[@class="aQj"]/div)[2]/div)[3]').click()
+        random_sleep(1, 2)
+        self.driver.find_element(By.XPATH, '//div[@class="acM"]').click()
+
+        WebDriverWait(self.driver, 8).until(EC.element_to_be_clickable((By.XPATH, '//div[@class="nH lZ"]/label')))
+
+        random_sleep(1, 1.5)
+        self.driver.find_element(By.XPATH, '(//div[@class="nH lZ"]/label)[6]').click()
+
+        random_sleep(1, 3)
+        self.driver.find_element(By.XPATH, '//div[@class="btl bti"]/div[@role="button"]').click()
+        random_sleep(3, 5)
+        return True
+
+    def set_new_from(self, from_name, from_email=None):
+        try:
+            self.driver.get('https://mail.google.com/mail/u/0/#settings/accounts')
+        except:
+            self.set_new_from_name(from_name)
+
+        WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, '//td[@class="rc CY"]/span')))
+        random_sleep(2, 4)
+        try:
+            self.driver.find_element(
+                By.XPATH,
+                f'(//table[@class="cf qv aYf"]//div[@class="rc" and contains(text(),"{from_name} <{from_email}>")]/parent::td/following-sibling::td[@class="qy CY"])[1]/span[@role="link"]').click()
+            random_sleep(2, 3)
+        except:
+            self.driver.find_element(By.XPATH, '//td[@class="rc CY"]/span').click()
+
+            self.driver.switch_to.window(self.driver.window_handles[1])
+
+            random_sleep(2, 4)
+            from_name_elem = self.driver.find_element(By.XPATH, '//input[@name="cfn"]')
+            from_name_elem.clear()
+            from_name_elem.send_keys(from_name)
+
+            random_sleep(2, 4)
+            email = from_email if from_name is not None else self.email
+            from_email_elem = self.driver.find_element(By.XPATH, '//input[@name="cfa"]')
+            from_email_elem.send_keys(email)
+            from_email_elem.send_keys(Keys.ENTER)
+
+            random_sleep(2, 3)
+
+            self.driver.switch_to.window(self.driver.window_handles[0])
+
+            try:
+                self.driver.find_element(
+                    By.XPATH,
+                    f'(//table[@class="cf qv aYf"]//div[@class="rc" and contains(text(),"{from_name} <{from_email}>")]/parent::td/following-sibling::td[@class="qy CY"])[1]/span[@role="link"]').click()
+                random_sleep(2, 3)
+            except:
+                pass
 
     def get_total_visible_messages(self):
         try:
@@ -330,8 +395,13 @@ class Gmail:
             return 0
 
     def get_message_number(self, number):
-        return self.driver.find_element(
-            By.XPATH, f'(//tr[@jsmodel="nXDxbd"])[{number}]')
+        try:
+            WebDriverWait(self.driver, 8).until(
+                EC.element_to_be_clickable((By.XPATH, f'(//tr[@jsmodel="nXDxbd"])[{number}]')))
+            return self.driver.find_element(
+                By.XPATH, f'(//tr[@jsmodel="nXDxbd"])[{number}]')
+        except TimeoutException as ex:
+            return False
 
     def inside_get_subject(self):
         WebDriverWait(self.driver, 8).until(
@@ -339,10 +409,12 @@ class Gmail:
         return self.driver.find_element(By.XPATH, '//h2[@data-thread-perm-id]').text
 
     def reply(self, creative):
+        WebDriverWait(self.driver, 8).until(
+            EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji T-I-Js-IF aaq T-I-ax7 L3"]')))
         self.driver.find_element(By.XPATH, '//div[@class="T-I J-J5-Ji T-I-Js-IF aaq T-I-ax7 L3"]').click()
         WebDriverWait(self.driver, 8).until(
             EC.presence_of_element_located((By.XPATH, '//div[@class="ajR"]')))
-        time.sleep(0.5)
+        random_sleep(0.8, 1.5)
         text_area = self.driver.find_element(By.XPATH, '//div[@class="Am aO9 Al editable LW-avf tS-tW"]')
         print(text_area.get_attribute('innerHTML'))
         text_area.send_keys(Keys.CONTROL, 'a')
@@ -361,14 +433,283 @@ class Gmail:
     def inside_delete_button(self):
         self.driver.find_element(By.XPATH, '//div[@jslog="20283; u014N:cOuCgd,Kr2w4b"]').click()
 
-    def outside_mark_as_read(self):
-        pass
-
-    def outside_add_star(self):
-        pass
-
-    def outside_mark_as_important(self):
-        pass
-
     def quit(self):
         self.driver.quit()
+
+    ####################################################################################################################
+    def select_first_message(self, selector):
+        list = {
+            "all": "",
+            "readed": "zA yO",
+            "unreaded": "zA zE",
+        }
+        try:
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH,
+                                                                             '//div[contains(@class,"BltHke nH oy8Mbf") and not(contains(@style,"display: none;"))]//tr[contains(@class,"{list[selector]}")][1]/td[contains(@class,"oZ-x3 xY")]')))
+            self.driver.find_element(By.XPATH,
+                                     '//div[contains(@class,"BltHke nH oy8Mbf") and not(contains(@style,"display: none;"))]//tr[contains(@class,"{list[selector]}")][1]/td[contains(@class,"oZ-x3 xY")]').click()
+            return True
+        except:
+            return False
+
+    def open_first_message(self, selector):
+        list = {
+            "all": "",
+            "readed": "zA yO",
+            "unreaded": "zA zE",
+        }
+        try:
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH,
+                                                                             '//div[contains(@class,"BltHke nH oy8Mbf") and not(contains(@style,"display: none;"))]//tr[contains(@class,"{list[selector]}")][1]/td[contains(@class,"yX xY ")]')))
+            self.driver.find_element(By.XPATH,
+                                     '//div[contains(@class,"BltHke nH oy8Mbf") and not(contains(@style,"display: none;"))]//tr[contains(@class,"{list[selector]}")][1]/td[contains(@class,"yX xY ")]').click()
+            return True
+        except:
+            return False
+
+    # selector ("all","none","reda","unread","starred","unstarred")
+    def select(self, selector):
+        try:
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH,
+                                                                             '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"J-J5-Ji J-JN-M-I-Jm")]/div[contains(@class,"G-asx T-I-J3 J-J5-Ji")]')))
+            self.driver.find_element(By.XPATH,
+                                     '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"J-J5-Ji J-JN-M-I-Jm")]/div[contains(@class,"G-asx T-I-J3 J-J5-Ji")]').click()
+            self.driver.find_element(By.XPATH,
+                                     f'//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"J-M jQjAxd")]//div[contains(@class,"J-N") and (@selector="{selector}")]').click()
+            return True
+        except:
+            if selector == "all":
+                self.driver.find_element(By.XPATH,
+                                         '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"J-J5-Ji J-JN-M-I-Jm")]/span[contains(@class,"T-Jo J-J5-Ji")]').click()
+                return True
+            else:
+                return False
+
+    def archive(self):
+        try:
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH,
+                                                                             '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji lR T-I-ax7")]/div[(@class="asa")]')))
+            self.driver.find_element(By.XPATH,
+                                     '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji lR T-I-ax7")]/div[(@class="asa")]').click()
+            return True
+        except:
+            return False
+
+    def report_spam(self):
+        try:
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH,
+                                                                             '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji nN T-I-ax7 T-I-Js-Gs T-I-Js-IF")]/div[(@class="asa")]')))
+            self.driver.find_element(By.XPATH,
+                                     '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji nN T-I-ax7 T-I-Js-Gs T-I-Js-IF")]/div[(@class="asa")]').click()
+            return True
+        except:
+            return False
+
+    def not_spam(self):
+        try:
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH,
+                                                                             '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class, "T-I J-J5-Ji aFk T-I-ax7")]/div[(@class="Bn")]')))
+            self.driver.find_element(By.XPATH,
+                                     '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class, "T-I J-J5-Ji aFk T-I-ax7")]/div[(@class="Bn")]').click()
+            return True
+        except:
+            return False
+
+    def delete(self):
+        try:
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH,
+                                                                             '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji aFi T-I-ax7") or contains(@class,"T-I J-J5-Ji nX T-I-ax7 T-I-Js-Gs")]')))
+            self.driver.find_element(By.XPATH,
+                                     '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji aFi T-I-ax7") or contains(@class,"T-I J-J5-Ji nX T-I-ax7 T-I-Js-Gs")]').click()
+            return True
+        except:
+            return False
+
+    def header_more(self, action):
+        list = {
+            "mark_all_as_read": 1,
+            "mark_as_read": 2,
+            "mark_as_unread": 3,
+            "mark_as_important": 4,
+            "mark_as_not_important": 5,
+            "add_to_tasks": 6,
+            "add_star": 7,
+            "remove_star": 8,
+            "archive": 9,
+            "mark_as_not_spam": 10,
+            "delete_forever": 11,
+            "forward_as_attachment": 18,
+        }
+        try:
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH,
+                                                                             '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji mA nf T-I-ax7 L3")]/span[contains(@class,"asa")]')))
+            self.driver.find_element(By.XPATH,
+                                     '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji mA nf T-I-ax7 L3")]/span[contains(@class,"asa")]').click()
+            element = self.driver.find_element(By.XPATH,
+                                               f'//div[contains(@class,"J-M aX0 aYO jQjAxd")]/div/div[contains(@class,"J-N")][{list[action]}]')
+            aria_hidden = element.get_attribute("aria-hidden")
+            aria_disabled = element.get_attribute("aria-disabled")
+            if aria_hidden == "false" and aria_disabled == "false":
+                print(action.replace("_", " "))
+                element.click()
+                return True
+            else:
+                print(f'already {action.replace("_", " ")}')
+                self.driver.find_element(By.XPATH,
+                                         '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji mA nf T-I-ax7 L3")]/span[contains(@class,"asa")]').click()
+                return False
+        except:
+            return False
+
+    def older(self):
+        try:
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH,
+                                                                             '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji") and contains(@class,"T-I-awG") and contains(@class,"T-I-ax7 T-I-Js-Gs")]')))
+            self.driver.find_element(By.XPATH,
+                                     '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji") and contains(@class,"T-I-awG") and contains(@class,"T-I-ax7 T-I-Js-Gs")]').click()
+            return True
+        except:
+            return False
+
+    def newer(self):
+        try:
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH,
+                                                                             '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji") and contains(@class,"T-I-awG") and contains(@class,"T-I-ax7 T-I-Js-IF")]')))
+            self.driver.find_element(By.XPATH,
+                                     '//div[(contains(@class,"D E G-atb") or contains(@class,"G-atb D E")) and not(contains(@style,"display: none;"))]//div[contains(@class,"T-I J-J5-Ji") and contains(@class,"T-I-awG") and contains(@class,"T-I-ax7 T-I-Js-IF")]').click()
+            return True
+        except:
+            return False
+
+    def body_more(self, action):
+        list = {
+            "reply": "r",
+            "reply_to_all": "r2",
+            "forward": "r3",
+            "filter_message_like_this": "cf",
+            "delete_this_message": "tm",
+            "block_sender": "bs",
+            "unblock_sender": "ubs",
+            "report_spam": "rs",
+            "report_phishing": "rp",
+            "report_not_phishing": "rn",
+            "show_original": "so",
+            "download_message": "dm",
+            "show_html_message": "shm",
+            "mark_as_unread": "mu",
+        }
+        try:
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable(
+                (By.XPATH, '//div[contains(@class,"T-I J-J5-Ji T-I-Js-Gs aap T-I-awG T-I-ax7 L3")]')))
+            self.driver.find_element(By.XPATH,
+                                     '//div[contains(@class,"T-I J-J5-Ji T-I-Js-Gs aap T-I-awG T-I-ax7 L3")]').click()
+            element = self.driver.find_element(By.XPATH,
+                                               f'//div[contains(@class,"b7 J-M")]/div[contains(@class,"J-N") and (@id="{list[action]}")]')
+            aria_hidden = element.get_attribute("aria-hidden")
+            style = element.get_attribute("style")
+            if "display: none;" not in style:
+                print(action.replace("_", " "))
+                element.click()
+                return True
+            else:
+                print(f'already {action.replace("_", " ")}')
+                self.driver.find_element(By.XPATH,
+                                         '//div[contains(@class,"T-I J-J5-Ji T-I-Js-Gs aap T-I-awG T-I-ax7 L3")]').click()
+                return False
+        except:
+            return False
+
+    def link_sender(self, sender_email, sender_password, sender_recovery):
+        try:
+            self.driver.get("https://mail.google.com/mail/u/0/#settings/accounts")
+            main_window = self.driver.current_window_handle
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, '//span[@class="sA rc"]')))
+            self.driver.find_element(By.XPATH, '//span[@class="sA rc"]').click()
+            for handle in self.driver.window_handles:
+                if handle != main_window:
+                    popup = handle
+                    self.driver.switch_to.window(popup)
+            try:
+                self.driver.find_element(By.NAME, 'ma_email').send_keys(sender_email)
+                self.driver.find_element(By.XPATH, '//input[@type="submit"]').click()
+
+                WebDriverWait(self.driver, 15).until(
+                    AnyEc(
+                        EC.presence_of_element_located((By.XPATH, '//td[@class="rb sf"]')),
+                        EC.presence_of_element_located((By.XPATH, '//input[@type="radio"]'))
+                    )
+                )
+
+                if len(self.driver.find_elements(By.XPATH, '//td[@class="rb sf"]')) > 0:
+                    self.driver.close()
+                    self.driver.switch_to.window(main_window)
+                    print(f'{sender_email} already linked with another account.')
+                    return False
+                self.driver.find_element(By.XPATH, '//input[@type="submit"]').click()
+            except:
+                pass
+
+            try:
+                time.sleep(1)
+                WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.ID, 'i0118')))
+                self.driver.find_element(By.ID, 'i0118').send_keys(sender_password, Keys.ENTER)
+            except:
+                pass
+
+            try:
+                self.driver.find_element(By.ID, 'EmailAddress').send_keys(sender_recovery, Keys.ENTER)
+            except:
+                pass
+
+            try:
+                WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'idBtn_Back')))
+                self.driver.find_element(By.ID, 'idBtn_Back').click()
+            except:
+                pass
+
+            try:
+                self.driver.find_element(By.ID, 'idSIButton9').send_keys(Keys.ENTER)
+            except:
+                pass
+
+            try:
+                self.driver.find_element(By.NAME, 'ucaccept').click()
+            except:
+                pass
+
+            try:
+                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.ID, 'bttn_close')))
+                time.sleep(1)
+                self.driver.find_element(By.ID, 'bttn_close').click()
+            except:
+                pass
+
+            self.driver.switch_to.window(main_window)
+            time.sleep(1)
+            self.driver.find_element(
+                By.XPATH,
+                f'(//div[text()[contains(.,"{sender_email}")]]/parent::td/following-sibling::td)[1]/span').click()
+            time.sleep(3)
+            return True
+        except:
+            return False
+
+    def vacation_responder(self, creative):
+        try:
+            self.driver.get("https://mail.google.com/mail/u/0/#settings/general")
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable(
+                (By.XPATH, '//table[@class="cf a8d"]//tr[@class="wbjtpc"]//td[@class="sG Db"]/input[@class="Da"]')))
+            self.driver.find_element(By.XPATH,
+                                     '//table[@class="cf a8d"]//tr[@class="wbjtpc"]//td[@class="sG Db"]/input[@class="Da"]').send_keys(
+                " ")
+
+            textarea = self.driver.find_element(By.XPATH,
+                                                '//table[@class="cf An"]//td[@class="Ap"]//div[contains(@class,"Am Al editable")]')
+            self.driver.execute_script(f"arguments[0].innerHTML = `{creative}`;", textarea)
+            textarea.send_keys(' ')
+            self.driver.find_element(By.XPATH, '//button[@guidedhelpid="save_changes_button"]').click()
+            WebDriverWait(self.driver, 15).until(EC.url_contains('https://mail.google.com/mail/u/0/#inbox'))
+            time.sleep(3)
+            return True
+        except:
+            return False

@@ -1,9 +1,11 @@
 import os, sys, getopt, json
+from os.path import exists
 import time
 from concurrent.futures import ThreadPoolExecutor
 import requests
 # from starlette.exceptions import HTTPException
 import undetected_chromedriver as uc
+# from selenium import webdriver as uc
 from selenium.webdriver.chrome.options import Options
 from selenium_stealth import stealth
 from api import api
@@ -27,40 +29,32 @@ app.add_middleware(
 
 
 @app.get("/")
-async def index():
+def index():
     return "Hello, this is the index page, that's mean that all things are installed fine!"
 
 
-@app.get("/screen")
-async def screen():
-    return FileResponse(path='screen.png', filename='screen.png', media_type='image/png')
-
-
-@app.get("/screen1")
-async def screen1():
-    return FileResponse(path='screen1.png', filename='screen1.png', media_type='image/png')
-
-
-@app.get("/path")
-async def path():
-    return f'{os.path.join(".", "profiles", "email")}'
-
-
-@app.get("/make")
-async def make():
-    directory = os.path.join(os.path.dirname(__file__), 'profiles', 'test')
-    # if not os.path.exists(direcory):
-    os.makedirs(directory)
-    return f'done!'
+@app.get("/screens")
+def screen():
+    file_name = 'screen.png'
+    if exists(file_name):
+        return FileResponse(path=file_name, filename=file_name, media_type='image/png')
+    else:
+        return 'File not found'
 
 
 @app.get("/login/{id}")
-def login(id: int):
+async def login(id: int, background_tasks: BackgroundTasks):
+    background_tasks.add_task(do_login, id)
+    return {"message": "The operation will be processed in the background"}
+
+
+def do_login(id):
     result = api.get_login_info(id)
     if result.text != '[]':
         profile = json.loads(result.text)
         while True:
             driver = get_driver(profile.get('email'))
+            # return True
             gmail = Gmail(driver, profile.get('email'), profile.get('password'), profile.get('recovery_email'))
             api.set_current_process(profile.get('email'), 'do login...')
             gmail.go_to_login_page()
@@ -68,11 +62,11 @@ def login(id: int):
                 login_result = gmail.do_login()
                 driver.save_screenshot('screen.png')
                 if login_result is True:
-                    time.sleep(7)
+                    time.sleep(5)
                     driver.close()
                     time.sleep(5)
                     driver.quit()
-                    api.set_current_process(profile.get('email'), '')
+                    api.set_current_process(profile.get('email'), 'Process terminated, Logged in.')
                     return True
                 elif login_result == "Captcha":
                     driver.quit()
@@ -80,64 +74,78 @@ def login(id: int):
                 else:
                     time.sleep(1)
                     driver.quit()
-                    api.set_current_process(profile.get('email'), '')
+                    api.set_current_process(profile.get('email'), 'Logged Process terminated, in failed.')
                     return False
             except Exception as ex:
                 return ex
 
 
-def random_sleep(x, y):
-    time.sleep(random.uniform(x, y))
+@app.get("/reply/{account_id}/{reply_id}")
+async def reply(account_id, reply_id, background_tasks: BackgroundTasks):
+    background_tasks.add_task(do_reply, account_id, reply_id)
+    return {"message": "The operation will be processed in the background"}
 
 
-def get_driver(email):
-    options = Options()
-    options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--ignore-certificate-errors")
-    options.add_argument("--disable-extensions")
-    options.add_argument("disable-infobars")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-notifications")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--disable-device-discovery-notifications")
-    options.add_argument("--dns-prefetch-disable")
-    # options.add_argument("--single-process")
-    options.add_argument("--disk-cache-size=0")
-    options.add_argument("--lang=en")
-    options.add_argument("log-level=3")
-    options.add_argument(
-        "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/37.0.2062.94 Chrome/81.0.4044.113 Safari/537.36")
+def do_reply(account_id, reply_id):
+    print(f'reply_id = {reply_id}')
+    result = api.get_login_info(account_id)
+    if result.text != '[]':
+        profile = json.loads(result.text)
+        while True:
+            driver = get_driver(profile.get('email'))
+            # return True
+            gmail = Gmail(driver, profile.get('email'), profile.get('password'), profile.get('recovery_email'))
+            api.set_current_process(profile.get('email'), 'do login...')
+            gmail.go_to_login_page()
+            login_result = gmail.do_login()
+            if login_result is True:
+                random_sleep(4, 6)
+                api.set_current_process(profile.get('email'), 'setup new from name and from email...')
+                from_response = api.get_from(reply_id)
+                gmail.set_new_from(from_response.get('from_name'), from_response.get('from_email'))
 
-    options.add_argument(f"--user-data-dir={os.path.join(os.path.dirname(__file__), 'profiles', email)}")
+                api.set_current_process(profile.get('email'), 'Filter By Subject...')
+                subject = api.get_reply_subject(reply_id)
+                gmail.filter_by_subject(subject=subject)
+                while True:
+                    # try:
+                    random_sleep(1, 3)
+                    driver.refresh()
+                    first_message = gmail.get_message_number(1)
+                    if first_message is not False:
+                        first_message.click()
+                        status = api.get_reply_operation_status(reply_id)
+                        if int(status) == 1:
+                            api.set_current_process(profile.get('email'), 'Doing replies...')
+                            body = api.get_reply_body(reply_id)
+                            gmail.reply(body)
+                            api.increase_total_replies(profile.get('email'))
+                        elif int(status) == 2:
+                            print('paused')
+                            api.set_current_process(profile.get('email'), 'Replies paused...')
+                            time.sleep(5)
+                        elif int(status) == 0:
+                            api.set_current_process(profile.get('email'), 'Replies stopped...')
+                            break
+                        time.sleep(1)
+                        gmail.inside_delete_button()
+                    else:
+                        break
+                    # except:
+                    #     break
 
-    options.page_load_strategy = 'eager'
-    driver = uc.Chrome(options=options)
-
-    # stealth(driver,
-    #         languages=["en-US", "en"],
-    #         vendor="Google Inc.",
-    #         platform="Win32",
-    #         webgl_vendor="Intel Inc.",
-    #         renderer="Intel Iris OpenGL Engine",
-    #         fix_hairline=True,
-    #         )
-
-    # driver.get('https://bot.sannysoft.com')
-    # time.sleep(5)
-    # driver.save_screenshot('screen.png')
-    # driver.quit()
-
-    driver.set_page_load_timeout(30)
-    handles = driver.window_handles
-    if len(handles) > 1:
-        driver.close()
-        handles = driver.window_handles
-        driver.switch_to.window(handles[0])
-    return driver
-
+                time.sleep(5)
+                driver.quit()
+                api.set_current_process(profile.get('email'), 'Process terminated, Replies completed.')
+                return True
+            elif login_result == "Captcha":
+                driver.quit()
+                continue
+            else:
+                time.sleep(1)
+                driver.quit()
+                api.set_current_process(profile.get('email'), 'Logged Process terminated, in failed.')
+                return False
 
 # def login(profile):
 #     email, password, recovery_email = profile.split(';')
@@ -183,30 +191,74 @@ def get_creative(creatives, subject):
     return None
 
 
-def reply(profile, creatives):
-    gmail = login(profile)
-    if gmail is not False:
-        while True:
-            # try:
-            random_sleep(1, 3)
-            first_message = gmail.get_message_number(1)
-            first_message.click()
-            subject = gmail.inside_get_subject()
-            creative = get_creative(creatives, subject)
-            if creative is not None:
-                # random_sleep(1, 2)
-                gmail.reply(creative)
-            time.sleep(1)
-            gmail.inside_delete_button()
+def random_sleep(x, y):
+    time.sleep(random.uniform(x, y))
 
-            # time.sleep(3)
-            # gmail.quit()
-            # except:
-            #     pass
 
+def get_driver(email):
+    options = Options()
+    options.add_argument("--no-sandbox")
+    options.add_argument("--headless")
+    options.add_argument("--disable-pu")
+    options.add_argument("--ignore-certificate-errors")
+    options.add_argument("--disable-extensions")
+    options.add_argument("disable-infobars")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-notifications")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--disable-device-discovery-notifications")
+    options.add_argument("--dns-prefetch-disable")
+    options.add_argument("--single-process")
+    options.add_argument("--disk-cache-size=0")
+    options.add_argument("--lang=en")
+    options.add_argument("log-level=3")
+    options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/37.0.2062.94 Chrome/81.0.4044.113 Safari/537.36")
+
+    options.add_argument(f"--user-data-dir={os.path.join(os.path.dirname(__file__), 'profiles', email)}")
+    # options.add_argument(f"--profile-directory=Default")
+
+    # options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+    # options.add_argument('--no-first-run --no-service-autorun --password-store=basic')
+    # options.add_argument(f"--start-maximized")
+    # options.add_argument(
+    #     f"--user-data-dir={os.path.join(os.path.dirname(__file__), 'profiles', email)}")
+    # options.add_argument(f"--user-agent={ua.chrome()}")
+    # user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36'
+    # options.add_argument(f"--user-agent={user_agent}")
+    # options.add_argument('--headless')
+    # options.add_argument('--no-sandbox')
+    # options.add_argument('--disable-dev-shm-usage')
+
+    options.page_load_strategy = 'eager'
+    # driver = uc.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=options)
+    driver = uc.Chrome(options=options)
+
+    # stealth(driver,
+    #         languages=["en-US", "en"],
+    #         vendor="Google Inc.",
+    #         platform="Win32",
+    #         webgl_vendor="Google Inc. (NVIDIA)",
+    #         renderer="ANGLE (NVIDIA, NVIDIA Quadro 2000 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    #         fix_hairline=False,
+    #         )
+
+    # driver.get('https://bot.sannysoft.com')
+    # time.sleep(5)
+    # driver.save_screenshot('screen.png')
+    #
+    # driver.quit()
+
+    driver.set_page_load_timeout(30)
+    handles = driver.window_handles
+    if len(handles) > 1:
+        driver.close()
+        handles = driver.window_handles
+        driver.switch_to.window(handles[0])
+    return driver
 
 # if __name__ == '__main__':
-#     creatives = get_creatives()
-#     processes = open('accounts.txt')
-#     for process in processes:
-#         reply(process, creatives)
+#     login_normal()
+    # creatives = get_creatives()
+    # processes = open('accounts.txt')
+    # for process in processes:
+    #     reply(process, creatives)
