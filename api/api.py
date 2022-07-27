@@ -1,6 +1,6 @@
 import requests
 import os
-import httpx
+# import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -42,3 +42,28 @@ def get_operation(id):
 def get_login_info(id):
     link = f"{os.getenv('MASTER_API')}/get-login-info/{id}"
     return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')})
+
+
+def get_from(id):
+    link = f"{os.getenv('MASTER_API')}/get-from/{id}"
+    return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).json()
+
+
+def get_reply_subject(id):
+    link = f"{os.getenv('MASTER_API')}/get-reply-subject/{id}"
+    return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
+
+
+def get_reply_body(id):
+    link = f"{os.getenv('MASTER_API')}/get-reply-body/{id}"
+    return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).json()[0]
+
+
+def get_reply_operation_status(id):
+    link = f"{os.getenv('MASTER_API')}/get-reply-operation-status/{id}"
+    return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
+
+
+def increase_total_replies(email):
+    link = f"{os.getenv('MASTER_API')}/increase-total-replies/{email}"
+    return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
