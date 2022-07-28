@@ -33,7 +33,7 @@ def index():
     return "Hello, this is the index page, that's mean that all things are installed fine!"
 
 
-@app.get("/screens")
+@app.get("/screen")
 def screen():
     file_name = 'screen.png'
     if exists(file_name):
