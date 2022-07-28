@@ -87,7 +87,6 @@ async def reply(account_id, reply_id, background_tasks: BackgroundTasks):
 
 
 def do_reply(account_id, reply_id):
-    print(f'reply_id = {reply_id}')
     result = api.get_login_info(account_id)
     if result.text != '[]':
         profile = json.loads(result.text)
@@ -95,57 +94,62 @@ def do_reply(account_id, reply_id):
             driver = get_driver(profile.get('email'))
             # return True
             gmail = Gmail(driver, profile.get('email'), profile.get('password'), profile.get('recovery_email'))
-            api.set_current_process(profile.get('email'), 'do login...')
-            gmail.go_to_login_page()
-            login_result = gmail.do_login()
-            if login_result is True:
-                random_sleep(4, 6)
-                api.set_current_process(profile.get('email'), 'setup new from name and from email...')
-                from_response = api.get_from(reply_id)
-                gmail.set_new_from(from_response.get('from_name'), from_response.get('from_email'))
+            try:
+                api.set_current_process(profile.get('email'), 'do login...')
+                gmail.go_to_login_page()
+                login_result = gmail.do_login()
+                if login_result is True:
+                    random_sleep(4, 6)
+                    api.set_current_process(profile.get('email'), 'setup new from name and from email...')
+                    from_response = api.get_from(reply_id)
+                    gmail.set_new_from(from_response.get('from_name'), from_response.get('from_email'))
 
-                api.set_current_process(profile.get('email'), 'Filter By Subject...')
-                subject = api.get_reply_subject(reply_id)
-                gmail.filter_by_subject(subject=subject)
-                while True:
-                    # try:
-                    random_sleep(1, 3)
-                    driver.refresh()
-                    first_message = gmail.get_message_number(1)
-                    if first_message is not False:
-                        first_message.click()
-                        status = api.get_reply_operation_status(reply_id)
-                        if int(status) == 1:
-                            api.set_current_process(profile.get('email'), 'Doing replies...')
-                            body = api.get_reply_body(reply_id)
-                            gmail.reply(body.get('body'), body.get('attachment'))
-                            api.increase_total_replies(profile.get('email'))
-                            time.sleep(1)
-                            gmail.inside_delete_button()
-                        elif int(status) == 2:
-                            print('paused')
-                            api.set_current_process(profile.get('email'), 'Replies paused...')
-                            time.sleep(5)
-                        elif int(status) == 0:
-                            api.set_current_process(profile.get('email'), 'Replies stopped...')
+                    api.set_current_process(profile.get('email'), 'Filter By Subject...')
+                    subject = api.get_reply_subject(reply_id)
+                    gmail.filter_by_subject(subject=subject)
+                    while True:
+                        # try:
+                        random_sleep(1, 3)
+                        driver.refresh()
+                        first_message = gmail.get_message_number(1)
+                        if first_message is not False:
+                            first_message.click()
+                            status = api.get_reply_operation_status(reply_id)
+                            if int(status) == 1:
+                                api.set_current_process(profile.get('email'), 'Doing replies...')
+                                body = api.get_reply_body(reply_id)
+                                gmail.reply(body.get('body'), body.get('attachment'))
+                                api.increase_total_replies(profile.get('email'))
+                                time.sleep(1)
+                                gmail.inside_delete_button()
+                            elif int(status) == 2:
+                                print('paused')
+                                api.set_current_process(profile.get('email'), 'Replies paused...')
+                                time.sleep(5)
+                            elif int(status) == 0:
+                                api.set_current_process(profile.get('email'), 'Replies stopped...')
+                                break
+                        else:
                             break
-                    else:
-                        break
-                    # except:
-                    #     break
+                        # except:
+                        #     break
 
-                time.sleep(5)
-                driver.quit()
-                api.set_current_process(profile.get('email'), '')
-                return True
-            elif login_result == "Captcha":
-                driver.quit()
-                continue
-            else:
-                time.sleep(1)
-                driver.quit()
-                api.set_current_process(profile.get('email'), 'Logged Process terminated, in failed.')
-                return False
+                    time.sleep(5)
+                    driver.quit()
+                    api.set_current_process(profile.get('email'), '')
+                    return True
+                elif login_result == "Captcha":
+                    driver.quit()
+                    continue
+                else:
+                    time.sleep(1)
+                    driver.quit()
+                    api.set_current_process(profile.get('email'), 'Logged Process terminated, in failed.')
+                    return False
+            except:
+                driver.save_screenshot('screen.png')
+                gmail.quit()
+
 
 # def login(profile):
 #     email, password, recovery_email = profile.split(';')
