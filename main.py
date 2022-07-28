@@ -66,7 +66,7 @@ def do_login(id):
                     driver.close()
                     time.sleep(5)
                     driver.quit()
-                    api.set_current_process(profile.get('email'), 'Process terminated, Logged in.')
+                    api.set_current_process(profile.get('email'), '')
                     return True
                 elif login_result == "Captcha":
                     driver.quit()
@@ -118,8 +118,10 @@ def do_reply(account_id, reply_id):
                         if int(status) == 1:
                             api.set_current_process(profile.get('email'), 'Doing replies...')
                             body = api.get_reply_body(reply_id)
-                            gmail.reply(body)
+                            gmail.reply(body.get('body'), body.get('attachment'))
                             api.increase_total_replies(profile.get('email'))
+                            time.sleep(1)
+                            gmail.inside_delete_button()
                         elif int(status) == 2:
                             print('paused')
                             api.set_current_process(profile.get('email'), 'Replies paused...')
@@ -127,8 +129,6 @@ def do_reply(account_id, reply_id):
                         elif int(status) == 0:
                             api.set_current_process(profile.get('email'), 'Replies stopped...')
                             break
-                        time.sleep(1)
-                        gmail.inside_delete_button()
                     else:
                         break
                     # except:
@@ -136,7 +136,7 @@ def do_reply(account_id, reply_id):
 
                 time.sleep(5)
                 driver.quit()
-                api.set_current_process(profile.get('email'), 'Process terminated, Replies completed.')
+                api.set_current_process(profile.get('email'), '')
                 return True
             elif login_result == "Captcha":
                 driver.quit()
@@ -144,7 +144,7 @@ def do_reply(account_id, reply_id):
             else:
                 time.sleep(1)
                 driver.quit()
-                api.set_current_process(profile.get('email'), 'Logged Process terminated, in failed.')
+                api.set_current_process(profile.get('email'), '')
                 return False
 
 # def login(profile):
@@ -197,21 +197,21 @@ def random_sleep(x, y):
 
 def get_driver(email):
     options = Options()
-    options.add_argument("--no-sandbox")
-    options.add_argument("--headless")
-    options.add_argument("--disable-pu")
-    options.add_argument("--ignore-certificate-errors")
-    options.add_argument("--disable-extensions")
-    options.add_argument("disable-infobars")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-notifications")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--disable-device-discovery-notifications")
-    options.add_argument("--dns-prefetch-disable")
-    options.add_argument("--single-process")
-    options.add_argument("--disk-cache-size=0")
-    options.add_argument("--lang=en")
-    options.add_argument("log-level=3")
+    # options.add_argument("--no-sandbox")
+    # options.add_argument("--headless")
+    # options.add_argument("--disable-pu")
+    # options.add_argument("--ignore-certificate-errors")
+    # options.add_argument("--disable-extensions")
+    # options.add_argument("disable-infobars")
+    # options.add_argument("--disable-dev-shm-usage")
+    # options.add_argument("--disable-notifications")
+    # options.add_argument("--disable-blink-features=AutomationControlled")
+    # options.add_argument("--disable-device-discovery-notifications")
+    # options.add_argument("--dns-prefetch-disable")
+    # options.add_argument("--single-process")
+    # options.add_argument("--disk-cache-size=0")
+    # options.add_argument("--lang=en")
+    # options.add_argument("log-level=3")
     options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/37.0.2062.94 Chrome/81.0.4044.113 Safari/537.36")
 
     options.add_argument(f"--user-data-dir={os.path.join(os.path.dirname(__file__), 'profiles', email)}")

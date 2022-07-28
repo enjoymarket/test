@@ -51,13 +51,13 @@ def get_from(id):
 
 def get_reply_subject(id):
     link = f"{os.getenv('MASTER_API')}/get-reply-subject/{id}"
-    print(f'subject link {link}')
+    # print(f'subject link {link}')
     return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
 
 
 def get_reply_body(id):
     link = f"{os.getenv('MASTER_API')}/get-reply-body/{id}"
-    return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).json()[0]
+    return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).json()
 
 
 def get_reply_operation_status(id):
