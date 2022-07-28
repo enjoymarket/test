@@ -347,23 +347,24 @@ class Gmail:
         return True
 
     def delete_other_froms(self):
-        # try:
-        #     self.driver.get('https://mail.google.com/mail/u/0/#settings/accounts')
-        #     WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.XPATH, '//td[@class="rc CY"]/span')))
-        # except:
-        #     self.delete_other_froms()
-        WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, '//td[@class="rc CY"]/span')))
-        self.driver.find_element(
-            By.XPATH,
-            f'(//table[@class="cf qv aYf"]//div[@class="rc" and contains(text(),"<{self.email}>")]/parent::td/following-sibling::td[@class="qy CY"])[1]/span[@role="link"]').click()
+        try:
+            WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, '//td[@class="rc CY"]/span')))
+            try:
+                self.driver.find_element(
+                    By.XPATH,
+                    f'(//table[@class="cf qv aYf"]//div[@class="rc" and contains(text(),"<{self.email}>")]/parent::td/following-sibling::td[@class="qy CY"])[1]/span[@role="link"]').click()
+            except:
+                pass
 
-        delete_elems = self.driver.find_elements(By.XPATH, '(//table[@class="cf qv aYf"]//tr/td[@class="qw CY"])/span[@role="link"]')
-        for delete_elem in delete_elems:
-            delete_elem.click()
-            WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, '(//div[@role="alertdialog"]//button)[1]')))
-            random_sleep(0.3, 0.5)
-            self.driver.find_element(By.XPATH, '(//div[@role="alertdialog"]//button)[1]').click()
-            random_sleep(0.5, 1)
+            delete_elems = self.driver.find_elements(By.XPATH, '(//table[@class="cf qv aYf"]//tr/td[@class="qw CY"])/span[@role="link"]')
+            for delete_elem in delete_elems:
+                delete_elem.click()
+                WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, '(//div[@role="alertdialog"]//button)[1]')))
+                random_sleep(0.3, 0.5)
+                self.driver.find_element(By.XPATH, '(//div[@role="alertdialog"]//button)[1]').click()
+                random_sleep(0.5, 1)
+        except:
+            self.delete_other_froms()
 
     def set_new_from(self, from_name, from_email=None):
         try:

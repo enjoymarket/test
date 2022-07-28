@@ -144,7 +144,7 @@ def do_reply(account_id, reply_id):
             else:
                 time.sleep(1)
                 driver.quit()
-                api.set_current_process(profile.get('email'), '')
+                api.set_current_process(profile.get('email'), 'Logged Process terminated, in failed.')
                 return False
 
 # def login(profile):
