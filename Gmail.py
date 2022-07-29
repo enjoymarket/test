@@ -145,6 +145,7 @@ class Gmail:
                 EC.presence_of_element_located((By.XPATH, '//img[@id="captchaimg" and @src]')),
                 EC.presence_of_element_located((By.XPATH, '//div[@jsname="B34EJ"]//*[name()="svg"]')),
                 EC.url_contains('https://accounts.google.com/signin/v2/deniedsigninrejected'),
+                EC.url_contains('https://accounts.google.com/ServiceLogin/webreauth'),
                 EC.presence_of_element_located((By.NAME, 'password'))
             )
         )
@@ -155,14 +156,29 @@ class Gmail:
             return False
 
         if 'https://accounts.google.com/signin/v2/deniedsigninrejected' in self.driver.current_url:
-            error_message_elem = self.driver.find_element(By.XPATH, '//h1[@id="headingText"]/span')
-            api.set_status(self.email, api.STATUS_ERROR, error_message_elem.text)
-            # self.save_in('deactivated.txt')
-            return False
+            try:
+                self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ENTER)
+                WebDriverWait(self.driver, 8).until(
+                    AnyEc(
+                        EC.presence_of_element_located((By.NAME, 'password'))
+                    )
+                )
+            except:
+                error_message_elem = self.driver.find_element(By.XPATH, '//h1[@id="headingText"]/span')
+                api.set_status(self.email, api.STATUS_ERROR, error_message_elem.text)
+                return False
 
         if len(self.driver.find_elements(By.XPATH, '//img[@id="captchaimg" and @src]')) > 0:
             print('Captcha found, retry...')
             return "Captcha"
+
+        if 'https://accounts.google.com/ServiceLogin/webreauth' in self.driver.current_url:
+            self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ENTER)
+            WebDriverWait(self.driver, 8).until(
+                AnyEc(
+                    EC.presence_of_element_located((By.NAME, 'password'))
+                )
+            )
 
         while True:
             try:
