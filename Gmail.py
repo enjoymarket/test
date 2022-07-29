@@ -451,6 +451,25 @@ class Gmail:
         time.sleep(5)
         self.driver.find_element(By.XPATH, '//div[@class="T-I J-J5-Ji aoO v7 T-I-atl L3"]').click()
 
+    def detect_bounce(self):
+        try:
+            self.driver.get('https://mail.google.com/mail/u/0/#search/mailer-daemon%40googlemail.com')
+            self.driver.refresh()
+        except:
+            self.detect_bounce()
+
+        while True:
+            try:
+                first_message = self.get_message_number(1)
+                if first_message is not False:
+                    first_message.click()
+
+            except:
+                break
+
+    def detect_limit(self):
+        pass
+
     def inside_delete_button(self):
         self.driver.find_element(By.XPATH, '//div[@jslog="20283; u014N:cOuCgd,Kr2w4b"]').click()
 
