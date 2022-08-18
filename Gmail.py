@@ -1,4 +1,5 @@
 import random
+from datetime import datetime, timedelta
 import time
 import urllib.parse
 from urllib.error import URLError
@@ -140,18 +141,23 @@ class Gmail:
                 except TimeoutException as ex:
                     self.driver.refresh()
 
-        WebDriverWait(self.driver, 60).until(
-            AnyEc(
-                EC.presence_of_element_located((By.XPATH, '//img[@id="captchaimg" and @src]')),
-                EC.presence_of_element_located((By.XPATH, '//div[@jsname="B34EJ"]//*[name()="svg"]')),
-                EC.url_contains('https://accounts.google.com/signin/v2/deniedsigninrejected'),
-                EC.url_contains('https://accounts.google.com/ServiceLogin/webreauth'),
-                EC.presence_of_element_located((By.NAME, 'password'))
-            )
-        )
+        while True:
+            try:
+                WebDriverWait(self.driver, 15).until(
+                    AnyEc(
+                        EC.presence_of_element_located((By.XPATH, '//img[@id="captchaimg" and @src]')),
+                        EC.presence_of_element_located((By.XPATH, '//div[@jsname="B34EJ"]//*[name()="svg"]')),
+                        EC.url_contains('https://accounts.google.com/signin/v2/deniedsigninrejected'),
+                        EC.url_contains('https://accounts.google.com/ServiceLogin/webreauth'),
+                        EC.presence_of_element_located((By.XPATH, '//input[@type="password"]'))
+                    )
+                )
+                break
+            except:
+                self.driver.refresh()
 
         if len(self.driver.find_elements(By.XPATH, '//div[@jsname="B34EJ"]//*[name()="svg"]')) > 0:
-            api.set_status(self.email, api.STATUS_ERROR, "Email not found")
+            # api.set_status(self.email, api.STATUS_ERROR, "Email not found")
             # self.save_in('email-not-found.txt')
             return False
 
@@ -165,7 +171,7 @@ class Gmail:
                 )
             except:
                 error_message_elem = self.driver.find_element(By.XPATH, '//h1[@id="headingText"]/span')
-                api.set_status(self.email, api.STATUS_ERROR, error_message_elem.text)
+                # api.set_status(self.email, api.STATUS_ERROR, error_message_elem.text)
                 return False
 
         if len(self.driver.find_elements(By.XPATH, '//img[@id="captchaimg" and @src]')) > 0:
@@ -176,14 +182,14 @@ class Gmail:
             self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ENTER)
             WebDriverWait(self.driver, 8).until(
                 AnyEc(
-                    EC.presence_of_element_located((By.NAME, 'password'))
+                    EC.presence_of_element_located((By.XPATH, '//input[@type="password"]'))
                 )
             )
 
         while True:
             try:
                 random_sleep(2, 4)
-                password_elem = self.driver.find_element(By.NAME, 'password')
+                password_elem = self.driver.find_element(By.XPATH, '//input[@type="password"]')
                 password_elem.send_keys(self.password)
 
                 wait_until_internet_connectivity_is_good()
@@ -200,14 +206,14 @@ class Gmail:
             return "Captcha"
 
         if len(self.driver.find_elements(By.XPATH, '//div[@jsname="h9d3hd"]//*[name()="svg"]')) > 0:
-            api.set_status(self.email, api.STATUS_WRONG_PASSWORD, "Wrong password")
+            # api.set_status(self.email, api.STATUS_WRONG_PASSWORD, "Wrong password")
             # self.save_in('wrong-password.txt')
             return False
 
         if 'https://accounts.google.com/signin/v2/deniedsigninrejected' in self.driver.current_url:
             error_message_elem = self.driver.find_element(By.XPATH, '//h1[@id="headingText"]/span')
             print(error_message_elem.text)
-            api.set_status(self.email, api.STATUS_ERROR, error_message_elem.text)
+            # api.set_status(self.email, api.STATUS_ERROR, error_message_elem.text)
             # self.save_in('verify-its-you.txt')
             return False
 
@@ -234,7 +240,7 @@ class Gmail:
             if 'https://accounts.google.com/signin/v2/disabled' in self.driver.current_url:
                 error_message_elem = self.driver.find_element(By.XPATH, '//h1[@id="headingText"]/span')
                 print(error_message_elem.text)
-                api.set_status(self.email, api.STATUS_ERROR, "Account Disabled")
+                # api.set_status(self.email, api.STATUS_ERROR, "Account Disabled")
                 # self.save_in('deactivated.txt')
                 return False
 
@@ -244,23 +250,23 @@ class Gmail:
                     return False
 
             if len(self.driver.find_elements(By.XPATH, '//div[@jsname="B34EJ"]//*[name()="svg"]')) > 0:
-                api.set_status(self.email, api.STATUS_ERROR, "Wrong recovery address")
+                # api.set_status(self.email, api.STATUS_ERROR, "Wrong recovery address")
                 # self.save_in('wrong-recovery.txt')
                 return False
 
             if 'https://accounts.google.com/speedbump/idvreenable' in self.driver.current_url:
-                api.set_status(self.email, api.STATUS_ERROR, "Need phone validation")
+                # api.set_status(self.email, api.STATUS_ERROR, "Need phone validation")
                 # self.save_in('phone.txt')
                 return False
 
         if "https://myaccount.google.com/signinoptions/recovery-options-collection" in self.driver.current_url:
             random_sleep(0.5, 1)
-            api.set_status(self.email, api.STATUS_ERROR, "Need to add a recovery email")
+            # api.set_status(self.email, api.STATUS_ERROR, "Need to add a recovery email")
             # self.save_in('add-recovery.txt')
             self.driver.find_element(By.XPATH, '(//div[@role="button"])[2]').click()
             random_sleep(0.5, 1)
 
-        api.set_status(self.email, api.STATUS_ACTIVE)
+        # api.set_status(self.email, api.STATUS_ACTIVE)
         # self.save_in('valid.txt')
         return True
         # self.wait_until_load_new_messages()
@@ -282,10 +288,319 @@ class Gmail:
         vf.write(f'{self.email};{self.password};{self.recovery}\n')
         vf.close()
 
+    def add_contacts(self, file):
+        wait_until_internet_connectivity_is_good()
+        # self.driver.execute_script("window.open('');")
+        # self.driver.switch_to.window(self.driver.window_handles[1])
+        random_sleep(0.2, 0.9)
+        self.driver.get('https://contacts.google.com')
+        actions = ActionChains(self.driver)
+        WebDriverWait(self.driver, 60).until(
+            EC.presence_of_element_located((By.XPATH, '//a[@jsaction="BlwSWe"]'))
+        )
+        import_elem = self.driver.find_element(By.XPATH, '//a[@jsaction="BlwSWe"]')
+        actions.move_to_element(import_elem).perform()
+        time.sleep(0.5)
+        import_elem.click()
+        WebDriverWait(self.driver, 60).until(
+            EC.presence_of_element_located((By.XPATH, '//input[@type="file"]'))
+        )
+        random_sleep(2, 3)
+        self.driver.find_element(By.XPATH, '//input[@type="file"]').send_keys(rf'{file}')
+        WebDriverWait(self.driver, 60).until(
+            EC.presence_of_element_located((By.XPATH, '//span[contains(text(),".csv")]'))
+        )
+        random_sleep(0.5, 1)
+        self.driver.find_element(By.CSS_SELECTOR, 'div[jsaction*="JIbuQc:DJ6zke;"] button:nth-child(2)').click()
+        WebDriverWait(self.driver, 60).until(
+            EC.presence_of_element_located((By.XPATH, '//div[@jsaction="JIbuQc:.CLIENT"]//div[@role="button"]'))
+        )
+        # self.driver.close()
+        # self.driver.switch_to.window(self.driver.window_handles[0])
+
+    def delete_all(self):
+        # Clear Inbox
+        if "https://mail.google.com/mail/u/0/#inbox" != self.driver.current_url:
+            self.driver.get('https://mail.google.com/mail/u/0/#inbox')
+        for i in range(1, 4):
+            if i > 1:
+                self.driver.find_element(By.XPATH, f'(//td[@class="aRz J-KU"])[{i}]').click()
+                time.sleep(3)
+            while len(self.driver.find_elements(By.XPATH, '//table[@class="F cf zt"]//tbody/tr')) > 5:
+                try:
+                    self.driver.find_element(By.XPATH, '//div[@class="bBe"]').click()
+                except:
+                    pass
+                self.driver.find_element(By.XPATH, '//span[contains(@class,"T-Jo J-J5-Ji")]').click()
+                time.sleep(0.5)
+                try:
+                    self.driver.find_element(By.XPATH, '(//div[@class="ya yb"]//span)[2]').click()
+                    time.sleep(0.5)
+                except:
+                    pass
+                self.driver.find_element(By.XPATH, '//div[@class="ar9 T-I-J3 J-J5-Ji"]/parent::div/parent::div').click()
+                time.sleep(0.5)
+                try:
+                    self.driver.find_element(By.XPATH, '//button[contains(@class,"J-at1-auR")]').click()
+                    time.sleep(0.5)
+                except:
+                    pass
+                while len(self.driver.find_elements(By.XPATH, '//div[@class="bBe"]')) == 0:
+                    print("sleep 3 sec")
+                    time.sleep(3)
+        # clear trash
+        # print('Go to trash and clear it')
+        # wait_until_internet_connectivity_is_good()
+        # self.driver.get('https://mail.google.com/mail/u/0/#trash')
+        # try:
+        #     WebDriverWait(self.driver, 60).until(
+        #         EC.presence_of_element_located((By.XPATH, '//div[@class="ya"]//span')))
+        #     self.driver.find_element(By.XPATH, '//div[@class="ya"]//span').click()
+        #     time.sleep(0.5)
+        #     self.driver.find_element(By.XPATH, '(//button[contains(@class,"J-at1-auR")])[2]').click()
+        #     while len(self.driver.find_elements(By.XPATH, '//div[@class="bBe"]')) == 0:
+        #         print("sleep 3 sec")
+        #         time.sleep(3)
+        # except:
+        #     pass
+
+    def add_to_postmaster(self, domain):
+        self.driver.get('https://postmaster.google.com/u/1/managedomains?pli=1')
+        self.driver.find_element(By.XPATH, '//div[@id="l-joyFDb-ah"]').click()
+        WebDriverWait(self.driver, 30).until(
+            EC.presence_of_element_located((By.XPATH, '//input[@type="text"]'))
+        )
+        time.sleep(0.5)
+        domain_elem = self.driver.find_element(By.XPATH, '//input[@type="text"]')
+        domain_elem.send_keys(domain)
+        domain_elem.send_keys(Keys.ENTER)
+        WebDriverWait(self.driver, 30).until(
+            AnyEc(
+                EC.element_to_be_clickable((By.XPATH, '//div[@class="J-p"]')),
+                EC.element_to_be_clickable((By.XPATH, '//button[@name="done"]'))
+            )
+        )
+        if len(self.driver.find_elements(By.XPATH, '//button[@name="done"]')) > 0:
+            self.driver.find_element(By.XPATH, '//button[@name="done"]').click()
+            return True
+        txt_record = self.driver.find_element(By.XPATH, '//div[@class="J-p"]').text
+
+        record = {
+            'Name': '@',
+            'Type': 'TXT',
+            "Address": txt_record,
+            "TTL": "60"
+        }
+        recovered_record = {}
+        try:
+            username = "enjoymarket"
+            wl_ip = "84.17.42.46"
+            api_key = "55df0746701f4254a31728cdec699c87"
+            api = Api(username, api_key, username, wl_ip, sandbox=False, attempts_count=3, attempts_delay=0.1)
+
+            api.domains_dns_addHost(domain, record)
+        except:
+            try:
+                hosts = api.domains_dns_getHosts(domain)
+                last_record = hosts[-1]
+                recovered_record = {
+                    'Name': last_record['Name'],
+                    'Type': last_record['Type'],
+                    "Address": last_record['Address'],
+                    "TTL": "60"
+                }
+                api.domains_dns_delHost(domain, recovered_record)
+                api.domains_dns_addHost(domain, record)
+            except:
+                self.driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+                return False
+
+        time.sleep(3)
+        attemps = 1
+        while attemps < 7:
+            self.driver.find_element(By.XPATH, '//button[@name="verify"]').click()
+            WebDriverWait(self.driver, 30).until(
+                AnyEc(
+                    EC.presence_of_element_located((By.XPATH, '//div[@class="b-c-a3-Z" and text()!=""]')),
+                    EC.presence_of_element_located((By.XPATH, '//button[@name="done"]'))
+                )
+            )
+            if len(self.driver.find_elements(By.XPATH, '//div[@class="b-c-a3-Z" and text()!=""]')) > 0:
+                print(f'Retry after 10 sec : {attemps}/6')
+                attemps = attemps + 1
+                time.sleep(10)
+            if len(self.driver.find_elements(By.XPATH, '//button[@name="done"]')) > 0:
+                self.driver.find_element(By.XPATH, '//button[@name="done"]').click()
+                if len(recovered_record) > 0:
+                    print('Recover DNS')
+                    record = {
+                        'Name': record['HostName'],
+                        'Type': record['RecordType'],
+                        "Address": record['Address'],
+                        "TTL": "60"
+                    }
+                    print(record)
+                    print(recovered_record)
+                    try:
+                        api.domains_dns_delHost(domain, record)
+                        api.domains_dns_addHost(domain, recovered_record)
+                    except Exception as ex:
+                        print(ex)
+                return True
+
+        if len(recovered_record) > 0:
+            print('Recover DNS-')
+            record = {
+                'Name': record['HostName'],
+                'Type': record['RecordType'],
+                "Address": record['Address'],
+                "TTL": "60"
+            }
+            api.domains_dns_delHost(domain, record)
+            api.domains_dns_addHost(domain, recovered_record)
+        return False
+
+    def change_password(self, new_password):
+        # time.sleep(300)
+        try:
+            self.driver.get('https://myaccount.google.com/security')
+            try:
+                WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH,
+                         '(//a[contains(@href,"https://accounts.google.com/ServiceLogin?service=accountsettings")])[1]')))
+                self.driver.find_element(
+                    By.XPATH,
+                    '(//a[contains(@href,"https://accounts.google.com/ServiceLogin?service=accountsettings")])[1]').click()
+            except:
+                pass
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.XPATH, '//a[contains(@href,"signinoptions/rescuephone?")]')))
+
+            time.sleep(2)
+            self.driver.find_element(By.XPATH, '//a[contains(@href,"signinoptions/rescuephone?")]').click()
+        except TimeoutException as ex:
+            self.change_password(new_password)
+
+        while True:
+            try:
+                # Old Password
+                WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.NAME, 'password')))
+
+                random_sleep(2, 4)
+                password_elem = self.driver.find_element(By.NAME, 'password')
+                password_elem.send_keys(self.password)
+
+                wait_until_internet_connectivity_is_good()
+                password_elem.send_keys(Keys.ENTER)
+
+                try:
+                    WebDriverWait(self.driver, 8).until(
+                        AnyEc(
+                            EC.presence_of_element_located((By.XPATH, '//input[@name="password" and @aria-invalid="true"]')),
+                            EC.url_contains('https://accounts.google.com/signin/v2/challenge/selection')
+                        )
+                    )
+                    if len(self.driver.find_element(By.XPATH, '//input[@name="password" and @aria-invalid="true"]')) > 0:
+                        return False
+
+                    if "https://accounts.google.com/signin/v2/challenge/selection" in self.driver.current_url:
+                        random_sleep(0.5, 1)
+                        self.driver.find_element(By.XPATH, '//div[@data-challengetype="12"]').click()
+                        random_sleep(0.5, 1)
+                        recovery_elem = self.driver.find_element(By.XPATH, '//input[@type="email"]')
+                        recovery_elem.clear()
+                        recovery_elem.send_keys(self.recovery)
+                        recovery_elem.send_keys(Keys.ENTER)
+                        break
+                except:
+                    break
+            except TimeoutException as ex:
+                self.driver.refresh()
+
+        while True:
+            try:
+                WebDriverWait(self.driver, 15).until(
+                    EC.url_contains('https://myaccount.google.com/signinoptions/rescuephone'))
+
+                current_url = self.driver.current_url
+                new_url = current_url.replace('rescuephone', 'password')
+                break
+            except TimeoutException as ex:
+                self.driver.refresh()
+
+        while True:
+            try:
+                # New Password
+                self.driver.get(new_url)
+
+                WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.NAME, 'confirmation_password')))
+
+                random_sleep(2, 4)
+                new_password_elem = self.driver.find_element(By.NAME, 'password')
+                time.sleep(0.2)
+                new_password_elem.send_keys(new_password)
+                random_sleep(2, 4)
+                confirmation_password_elem = self.driver.find_element(By.NAME, 'confirmation_password')
+                time.sleep(0.2)
+                confirmation_password_elem.send_keys(new_password)
+                time.sleep(0.1)
+                confirmation_password_elem.send_keys(Keys.ENTER)
+                break
+            except TimeoutException as ex:
+                if "https://myaccount.google.com/security" in self.driver.current_url:
+                    return True
+                self.driver.refresh()
+            # except Exception as e:
+            #     print(e)
+
+        WebDriverWait(self.driver, 15).until(
+            AnyEc(
+                EC.presence_of_element_located((By.XPATH, '//p[@role="alert"]')),
+                EC.url_contains('https://myaccount.google.com/security')
+            )
+        )
+
+        if len(self.driver.find_elements(By.XPATH, '//p[@role="alert"]')) > 0:
+            return False
+
+        time.sleep(2)
+        return True
+
+    def change_language(self, language, country):
+        try:
+            self.driver.get('https://myaccount.google.com/language')
+        except:
+            self.change_language(language, country)
+        WebDriverWait(self.driver, 8).until(
+            EC.element_to_be_clickable((By.XPATH, '//button[@class="VfPpkd-Bz112c-LgbsSe yHy1rc eT1oJ mN1ivc"]'))
+        )
+        self.driver.find_element(By.XPATH, '//button[@class="VfPpkd-Bz112c-LgbsSe yHy1rc eT1oJ mN1ivc"]').click()
+        WebDriverWait(self.driver, 8).until(
+            EC.presence_of_element_located((By.XPATH, '//input[@class="VfPpkd-fmcmS-wGMbrd WRh7Kd"]'))
+        )
+        random_sleep(1, 2)
+        self.driver.find_element(By.XPATH, '//input[@class="VfPpkd-fmcmS-wGMbrd WRh7Kd"]').send_keys(language)
+        random_sleep(0.5, 1)
+        self.driver.find_element(By.XPATH, '//li[contains(@class,"MCs1Pd HiC7Nc OXawpe") and @aria-disabled="false"]').click()
+        random_sleep(0.3, 0.8)
+        print(f'//li[contains(@class,"MCs1Pd HiC7Nc OXawpe")]//span[text()="{country}"]//ancestor::li')
+        country_elem = self.driver.find_element(By.XPATH, f'//li[contains(@class,"MCs1Pd HiC7Nc OXawpe")]//span[text()="{country}"]//ancestor::li')
+        actions = ActionChains(self.driver)
+        actions.move_to_element(country_elem).perform()
+        random_sleep(0.5, 0.8)
+        country_elem.click()
+        time.sleep(0.3)
+        actions.send_keys(Keys.TAB * 2)
+        actions.perform()
+        actions.send_keys(Keys.ENTER)
+        actions.perform()
+        time.sleep(5)
+
+
     def click_more(self):
         try:
-            self.driver.find_element(By.XPATH, f'//span[@role="button" and not(contains(@class, "air"))]/span['
-                                               f'@class="CJ"]').click()
+            self.driver.find_element(By.XPATH, f'//span[@role="button" and not(contains(@class, "air"))]/span[@class="CJ"]').click()
         except:
             pass
 
@@ -372,7 +687,11 @@ class Gmail:
             except:
                 pass
 
-            delete_elems = self.driver.find_elements(By.XPATH, '(//table[@class="cf qv aYf"]//tr/td[@class="qw CY"])/span[@role="link"]')
+            # (//table[@class="cf qv aYf"]//tr/td[@class="qw CY"])/span[@role="link"] # select all other senders
+            delete_elems = self.driver.find_elements(By.XPATH, '(//table[@class="cf qv aYf"]//tr/td['
+                                                               '@class="CY"])/div[@class="rc" and contains(text(), '
+                                                               '"gmail.com")]//parent::td/following-sibling::td['
+                                                               '@class="qw CY"]/span[@role="link"]')
             for delete_elem in delete_elems:
                 delete_elem.click()
                 WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, '(//div[@role="alertdialog"]//button)[1]')))
@@ -469,22 +788,105 @@ class Gmail:
 
     def detect_bounce(self):
         try:
-            self.driver.get('https://mail.google.com/mail/u/0/#search/mailer-daemon%40googlemail.com')
+            self.driver.get('https://mail.google.com/mail/u/0/#advanced-search/from=mailer-daemon@googlemail.com&has=550+5.1.1')
             self.driver.refresh()
         except:
             self.detect_bounce()
 
-        while True:
-            try:
-                first_message = self.get_message_number(1)
-                if first_message is not False:
-                    first_message.click()
+        WebDriverWait(self.driver, 8).until(
+            EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
+        random_sleep(1, 3)
+        more_elem = self.driver.find_element(By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')
+        more_elem.click()
+        random_sleep(0.5, 1.5)
+        more_elem.click()
+        random_sleep(0.5, 1.5)
 
-            except:
-                break
+        bounces = []
+        first_message = self.get_message_number(1)
+        if first_message is not False:
+            first_message.click()
+            while True:
+                try:
+                    WebDriverWait(self.driver, 8).until(
+                        EC.element_to_be_clickable((By.XPATH, '//a[@style="color:#212121;text-decoration:none"]/b')))
+                    bounce_elem = self.driver.find_element(By.XPATH, '//a[@style="color:#212121;text-decoration:none"]/b')
+                    bounces.append(bounce_elem.text)
+                    print(bounces)
+                    random_sleep(0.5, 1)
+                    if not self.go_to_next_message():
+                        break
+                except:
+                    break
+        return bounces
+
+    def detect_sender_blocked(self):
+        try:
+            self.driver.get(
+                'https://mail.google.com/mail/u/0/#advanced-search/from=mailer-daemon@googlemail.com&has=550+5.1.0')
+            self.driver.refresh()
+        except:
+            self.detect_bounce()
+
+        WebDriverWait(self.driver, 8).until(
+            EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
+        random_sleep(1, 3)
+        actions = ActionChains(self.driver)
+        actions.send_keys(Keys.ESCAPE)
+        actions.perform()
+        random_sleep(1, 1.5)
+        actions.send_keys(Keys.ESCAPE)
+        actions.perform()
+        random_sleep(1, 1.5)
+
+        blocked = []
+        first_message = self.get_message_number(1)
+        if first_message is not False:
+            first_message.click()
+            while True:
+                try:
+                    WebDriverWait(self.driver, 8).until(
+                        EC.element_to_be_clickable((By.XPATH, '//a[@style="color:#212121;text-decoration:none"]/b')))
+                    bounce_elem = self.driver.find_element(By.XPATH,
+                                                           '//a[@style="color:#212121;text-decoration:none"]/b')
+                    block = '.'.join(bounce_elem.text.split('@')[1].split('.')[-2:])
+                    email_elem = self.driver.find_element(By.XPATH, '//p[@style="font-family:monospace"]//a[contains('
+                                                                    '@href, "mailto")]')
+                    email = email_elem.text
+                    e = {
+                        'email': email,
+                        'sender': block
+                    }
+                    if e not in blocked:
+                        blocked.append(e)
+                        print(blocked)
+                    random_sleep(0.5, 1)
+                    if not self.go_to_next_message():
+                        break
+                except:
+                    break
+        for block in blocked:
+            api.add_blocked_sender(block.get('email'), block.get('sender'))
+        return blocked
 
     def detect_limit(self):
-        pass
+        try:
+            self.driver.get(
+                f'https://mail.google.com/mail/u/0/#advanced-search/query=from%3A('
+                f'mailer-daemon%40googlemail.com)+limit&isrefinement=true&datestart='
+                f'{datetime.strftime(datetime.now() - timedelta(1), "%Y-%m-%d")}&dateend='
+                f'{datetime.strftime(datetime.now(), "%Y-%m-%d")}&daterangetype=custom_range')
+            self.driver.refresh()
+        except:
+            self.detect_bounce()
+
+        WebDriverWait(self.driver, 8).until(
+            EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
+
+        first_message = self.get_message_number(1)
+        if first_message is not False:
+            return True
+        return False
 
     def inside_delete_button(self):
         self.driver.find_element(By.XPATH, '//div[@jslog="20283; u014N:cOuCgd,Kr2w4b"]').click()

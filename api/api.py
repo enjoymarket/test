@@ -68,3 +68,8 @@ def get_reply_operation_status(id):
 def increase_total_replies(email):
     link = f"{os.getenv('MASTER_API')}/increase-total-replies/{email}"
     return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
+
+
+def add_blocked_sender(email, sender):
+    link = f"{os.getenv('MASTER_API')}/add-blocked-sender/{email}/{sender}"
+    return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
