@@ -16,6 +16,11 @@ def set_status(email, status, error_message=""):
     return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')})
 
 
+def get_user_agent(email):
+    link = f"{os.getenv('MASTER_API')}/get-user-agent/{email}"
+    return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
+
+
 def set_current_process(email, message=""):
     link = f"{os.getenv('MASTER_API')}/set-current-process/{email}?message={message}"
     return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')})

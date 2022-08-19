@@ -217,7 +217,9 @@ def get_driver(email):
     options.add_argument("--disk-cache-size=0")
     options.add_argument("--lang=en")
     options.add_argument("log-level=3")
-    options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/37.0.2062.94 Chrome/81.0.4044.113 Safari/537.36")
+
+    ua = api.get_user_agent(email)
+    options.add_argument(f"--user-agent={ua}")
 
     options.add_argument(f"--user-data-dir={os.path.join(os.path.dirname(__file__), 'profiles', email)}")
     # options.add_argument(f"--profile-directory=Default")
