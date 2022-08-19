@@ -66,7 +66,7 @@ class Gmail:
 
     def wait_login_page_to_load(self):
         try:
-            WebDriverWait(self.driver, 30).until(
+            WebDriverWait(self.driver, 15).until(
                 AnyEc(
                     EC.presence_of_element_located((By.XPATH, f'//div[@data-challengetype="12"]')),
                     EC.url_contains('https://mail.google.com/mail/'),
@@ -74,6 +74,7 @@ class Gmail:
                     EC.url_contains('https://accounts.google.com/signin/v2/deniedsigninrejected'),
                     EC.url_contains('https://accounts.google.com/speedbump/idvreenable'),
                     EC.url_contains('https://accounts.google.com/signin/v2/disabled'),
+                    EC.url_contains('https://gds.google.com/web/chip'),
                     EC.presence_of_element_located((By.XPATH, '//div[@jsname="h9d3hd"]//*[name()="svg"]')),
                     EC.presence_of_element_located((By.XPATH, '//div[@jsname="B34EJ"]//*[name()="svg"]')),
                     EC.presence_of_element_located((By.XPATH, '//img[@id="captchaimg" and @src]'))
@@ -157,7 +158,7 @@ class Gmail:
                 self.driver.refresh()
 
         if len(self.driver.find_elements(By.XPATH, '//div[@jsname="B34EJ"]//*[name()="svg"]')) > 0:
-            # api.set_status(self.email, api.STATUS_ERROR, "Email not found")
+            api.set_status(self.email, api.STATUS_ERROR, "Email not found")
             # self.save_in('email-not-found.txt')
             return False
 
@@ -171,7 +172,7 @@ class Gmail:
                 )
             except:
                 error_message_elem = self.driver.find_element(By.XPATH, '//h1[@id="headingText"]/span')
-                # api.set_status(self.email, api.STATUS_ERROR, error_message_elem.text)
+                api.set_status(self.email, api.STATUS_ERROR, error_message_elem.text)
                 return False
 
         if len(self.driver.find_elements(By.XPATH, '//img[@id="captchaimg" and @src]')) > 0:
@@ -202,20 +203,27 @@ class Gmail:
             return False
 
         if len(self.driver.find_elements(By.XPATH, '//img[@id="captchaimg" and @src]')) > 0:
-            print('Captcha found, retry...')
             return "Captcha"
 
         if len(self.driver.find_elements(By.XPATH, '//div[@jsname="h9d3hd"]//*[name()="svg"]')) > 0:
-            # api.set_status(self.email, api.STATUS_WRONG_PASSWORD, "Wrong password")
+            api.set_status(self.email, api.STATUS_WRONG_PASSWORD, "Wrong password")
             # self.save_in('wrong-password.txt')
             return False
 
         if 'https://accounts.google.com/signin/v2/deniedsigninrejected' in self.driver.current_url:
             error_message_elem = self.driver.find_element(By.XPATH, '//h1[@id="headingText"]/span')
-            print(error_message_elem.text)
-            # api.set_status(self.email, api.STATUS_ERROR, error_message_elem.text)
+            api.set_status(self.email, api.STATUS_ERROR, error_message_elem.text)
             # self.save_in('verify-its-you.txt')
             return False
+
+        if 'https://gds.google.com/web/chip' in self.driver.current_url:
+            random_sleep(1, 2)
+            try:
+                self.driver.find_element(By.XPATH, '//span[@class="VfPpkd-vQzf8d"]').click()
+            except:
+                self.driver.find_element(By.XPATH, '//span[@class="VfPpkd-vQzf8d "]').click()
+            if not self.wait_login_page_to_load():
+                return False
 
         if "https://accounts.google.com/signin/v2/challenge/selection" in self.driver.current_url:
             random_sleep(0.5, 1)
@@ -239,34 +247,37 @@ class Gmail:
 
             if 'https://accounts.google.com/signin/v2/disabled' in self.driver.current_url:
                 error_message_elem = self.driver.find_element(By.XPATH, '//h1[@id="headingText"]/span')
-                print(error_message_elem.text)
-                # api.set_status(self.email, api.STATUS_ERROR, "Account Disabled")
+                api.set_status(self.email, api.STATUS_ERROR, "Account Disabled")
                 # self.save_in('deactivated.txt')
                 return False
 
             if 'https://gds.google.com/web/chip' in self.driver.current_url:
-                self.driver.find_element(By.XPATH, '//span[@class="VfPpkd-vQzf8d "]').click()
+                random_sleep(1, 2)
+                try:
+                    self.driver.find_element(By.XPATH, '//span[@class="VfPpkd-vQzf8d"]').click()
+                except:
+                    self.driver.find_element(By.XPATH, '//span[@class="VfPpkd-vQzf8d "]').click()
                 if not self.wait_login_page_to_load():
                     return False
 
             if len(self.driver.find_elements(By.XPATH, '//div[@jsname="B34EJ"]//*[name()="svg"]')) > 0:
-                # api.set_status(self.email, api.STATUS_ERROR, "Wrong recovery address")
+                api.set_status(self.email, api.STATUS_ERROR, "Wrong recovery address")
                 # self.save_in('wrong-recovery.txt')
                 return False
 
             if 'https://accounts.google.com/speedbump/idvreenable' in self.driver.current_url:
-                # api.set_status(self.email, api.STATUS_ERROR, "Need phone validation")
+                api.set_status(self.email, api.STATUS_ERROR, "Need phone validation")
                 # self.save_in('phone.txt')
                 return False
 
         if "https://myaccount.google.com/signinoptions/recovery-options-collection" in self.driver.current_url:
             random_sleep(0.5, 1)
-            # api.set_status(self.email, api.STATUS_ERROR, "Need to add a recovery email")
+            api.set_status(self.email, api.STATUS_ERROR, "Need to add a recovery email")
             # self.save_in('add-recovery.txt')
             self.driver.find_element(By.XPATH, '(//div[@role="button"])[2]').click()
             random_sleep(0.5, 1)
 
-        # api.set_status(self.email, api.STATUS_ACTIVE)
+        api.set_status(self.email, api.STATUS_ACTIVE)
         # self.save_in('valid.txt')
         return True
         # self.wait_until_load_new_messages()
