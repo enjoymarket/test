@@ -630,30 +630,48 @@ class Gmail:
 
     def security_alert(self):
         try:
-            self.driver.get('https://mail.google.com/mail/u/0/#advanced-search/from=accounts.google.com&subject'
-                            '=Security+Alert&subset=all&within=1d&sizeoperator=s_sl&sizeunit=s_smb&query=subject%3A('
-                            'Security+Alert)')
+            self.driver.get('https://mail.google.com/mail/u/0/#advanced-search/from=accounts.google.com&subject=Security+Alert&subset=all&within=1d&sizeoperator=s_sl&sizeunit=s_smb&query=subject%3A(Security+Alert)')
         except:
             self.security_alert()
-        WebDriverWait(self.driver, 8).until(
-            EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
-        random_sleep(1, 3)
+
+        all_recognized = False
         while True:
+            self.driver.refresh()
+            WebDriverWait(self.driver, 8).until(
+                EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
+            random_sleep(1, 3)
+            self.actions.send_keys(Keys.ESCAPE)
+            self.actions.perform()
+            random_sleep(1, 1.5)
+            self.actions.send_keys(Keys.ESCAPE)
+            self.actions.perform()
+            random_sleep(1, 1.5)
+
+            if all_recognized:
+                self.driver.find_element(By.XPATH, '//span[contains(@class,"T-Jo J-J5-Ji")]').click()
+                time.sleep(0.5)
+                self.delete()
+                random_sleep(1, 3)
+                break
+
             first_message = self.get_message_number(1)
             if first_message is not False:
                 first_message.click()
                 WebDriverWait(self.driver, 8).until(
-                    EC.element_to_be_clickable((By.XPATH, '(//a[contains(@href, "https://accounts.google.com/AccountChooser?")])[1]')))
+                    EC.element_to_be_clickable((By.XPATH, '(//a[contains(@href,"https://accounts.google.com/AccountChooser?")])[1]')))
 
                 random_sleep(2, 3)
                 self.driver.find_element(By.XPATH, '(//a[contains(@href, "https://accounts.google.com/AccountChooser?")])[1]').click()
 
                 self.driver.switch_to.window(self.driver.window_handles[1])
-                WebDriverWait(self.driver, 8).until(
-                    EC.element_to_be_clickable((By.XPATH, '//button[@jsname="j6LnYe"]')))
-                random_sleep(2, 3)
-                self.driver.find_element(By.XPATH, '//button[@jsname="j6LnYe"]').click()
-                random_sleep(2, 3)
+                try:
+                    WebDriverWait(self.driver, 8).until(
+                        EC.element_to_be_clickable((By.XPATH, '//button[@jsname="j6LnYe"]')))
+                    random_sleep(2, 3)
+                    self.driver.find_element(By.XPATH, '//button[@jsname="j6LnYe"]').click()
+                    random_sleep(2, 3)
+                except:
+                    all_recognized = True
                 self.driver.close()
                 self.driver.switch_to.window(self.driver.window_handles[0])
                 random_sleep(1, 2)
