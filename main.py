@@ -96,6 +96,7 @@ def do_login(id):
                     f.write(f'{ex}\n')
                     f.flush()
                     f.close()
+                return ex
 
 
 @app.get("/reply/{account_id}/{reply_id}")

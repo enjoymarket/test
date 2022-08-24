@@ -588,12 +588,12 @@ class Gmail:
         while True:
             try:
                 WebDriverWait(self.driver, 15).until(
-                    EC.element_to_be_clickable((By.XPATH, '//button[@class="VfPpkd-Bz112c-LgbsSe yHy1rc eT1oJ mN1ivc"]'))
+                    EC.element_to_be_clickable((By.XPATH, '//div[@class="N1UXxf"]/button'))
                 )
                 break
             except TimeoutException as ex:
                 self.driver.refresh()
-        self.driver.find_element(By.XPATH, '//button[@class="VfPpkd-Bz112c-LgbsSe yHy1rc eT1oJ mN1ivc"]').click()
+        self.driver.find_element(By.XPATH, '//div[@class="N1UXxf"]/button').click()
         WebDriverWait(self.driver, 8).until(
             EC.presence_of_element_located((By.XPATH, '//input[@class="VfPpkd-fmcmS-wGMbrd WRh7Kd"]'))
         )
