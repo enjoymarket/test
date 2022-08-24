@@ -57,6 +57,7 @@ class Gmail:
         self.email = email
         self.password = password
         self.recovery = recovery
+        self.actions = ActionChains(self.driver)
 
     def slow_type(self, element: WebElement, text: str, delay: float = 0.1):
         """Send a text to an element one character at a time with a delay."""
@@ -305,12 +306,11 @@ class Gmail:
         # self.driver.switch_to.window(self.driver.window_handles[1])
         random_sleep(0.2, 0.9)
         self.driver.get('https://contacts.google.com')
-        actions = ActionChains(self.driver)
         WebDriverWait(self.driver, 60).until(
             EC.presence_of_element_located((By.XPATH, '//a[@jsaction="BlwSWe"]'))
         )
         import_elem = self.driver.find_element(By.XPATH, '//a[@jsaction="BlwSWe"]')
-        actions.move_to_element(import_elem).perform()
+        self.actions.move_to_element(import_elem).perform()
         time.sleep(0.5)
         import_elem.click()
         WebDriverWait(self.driver, 60).until(
@@ -508,11 +508,13 @@ class Gmail:
                 try:
                     WebDriverWait(self.driver, 8).until(
                         AnyEc(
-                            EC.presence_of_element_located((By.XPATH, '//input[@name="password" and @aria-invalid="true"]')),
+                            EC.presence_of_element_located(
+                                (By.XPATH, '//input[@name="password" and @aria-invalid="true"]')),
                             EC.url_contains('https://accounts.google.com/signin/v2/challenge/selection')
                         )
                     )
-                    if len(self.driver.find_element(By.XPATH, '//input[@name="password" and @aria-invalid="true"]')) > 0:
+                    if len(self.driver.find_element(By.XPATH,
+                                                    '//input[@name="password" and @aria-invalid="true"]')) > 0:
                         return False
 
                     if "https://accounts.google.com/signin/v2/challenge/selection" in self.driver.current_url:
@@ -583,9 +585,14 @@ class Gmail:
             self.driver.get('https://myaccount.google.com/language')
         except:
             self.change_language(language, country)
-        WebDriverWait(self.driver, 8).until(
-            EC.element_to_be_clickable((By.XPATH, '//button[@class="VfPpkd-Bz112c-LgbsSe yHy1rc eT1oJ mN1ivc"]'))
-        )
+        while True:
+            try:
+                WebDriverWait(self.driver, 15).until(
+                    EC.element_to_be_clickable((By.XPATH, '//button[@class="VfPpkd-Bz112c-LgbsSe yHy1rc eT1oJ mN1ivc"]'))
+                )
+                break
+            except TimeoutException as ex:
+                self.driver.refresh()
         self.driver.find_element(By.XPATH, '//button[@class="VfPpkd-Bz112c-LgbsSe yHy1rc eT1oJ mN1ivc"]').click()
         WebDriverWait(self.driver, 8).until(
             EC.presence_of_element_located((By.XPATH, '//input[@class="VfPpkd-fmcmS-wGMbrd WRh7Kd"]'))
@@ -593,25 +600,38 @@ class Gmail:
         random_sleep(1, 2)
         self.driver.find_element(By.XPATH, '//input[@class="VfPpkd-fmcmS-wGMbrd WRh7Kd"]').send_keys(language)
         random_sleep(0.5, 1)
-        self.driver.find_element(By.XPATH, '//li[contains(@class,"MCs1Pd HiC7Nc OXawpe") and @aria-disabled="false"]').click()
+        self.driver.find_element(By.XPATH,
+                                 '//li[contains(@class,"MCs1Pd HiC7Nc OXawpe") and @aria-disabled="false"]').click()
         random_sleep(0.3, 0.8)
         print(f'//li[contains(@class,"MCs1Pd HiC7Nc OXawpe")]//span[text()="{country}"]//ancestor::li')
-        country_elem = self.driver.find_element(By.XPATH, f'//li[contains(@class,"MCs1Pd HiC7Nc OXawpe")]//span[text()="{country}"]//ancestor::li')
-        actions = ActionChains(self.driver)
-        actions.move_to_element(country_elem).perform()
+        country_elem = self.driver.find_element(By.XPATH,
+                                                f'//li[contains(@class,"MCs1Pd HiC7Nc OXawpe")]//span[text()="{country}"]//ancestor::li')
+        self.actions.move_to_element(country_elem).perform()
         random_sleep(0.5, 0.8)
         country_elem.click()
         time.sleep(0.3)
-        actions.send_keys(Keys.TAB * 2)
-        actions.perform()
-        actions.send_keys(Keys.ENTER)
-        actions.perform()
-        time.sleep(5)
+        self.actions.send_keys(Keys.TAB * 2)
+        self.actions.perform()
+        time.sleep(0.5)
+        self.actions.send_keys(Keys.ENTER)
+        self.actions.perform()
+        random_sleep(1, 3)
 
+        try:
+            self.driver.find_element(By.XPATH, '//button[@aria-checked="true"]').click()
+            self.actions.send_keys(Keys.TAB * 2)
+            self.actions.perform()
+            time.sleep(0.5)
+            self.actions.send_keys(Keys.ENTER)
+            self.actions.perform()
+        except:
+            pass
+        time.sleep(5)
 
     def click_more(self):
         try:
-            self.driver.find_element(By.XPATH, f'//span[@role="button" and not(contains(@class, "air"))]/span[@class="CJ"]').click()
+            self.driver.find_element(By.XPATH,
+                                     f'//span[@role="button" and not(contains(@class, "air"))]/span[@class="CJ"]').click()
         except:
             pass
 
@@ -667,16 +687,48 @@ class Gmail:
         except TimeoutException as ex:
             self.filter_by_subject(folder_name, subject)
 
+    def delete_all_filters(self):
+        try:
+            self.driver.get('https://mail.google.com/mail/u/0/#settings/filters')
+        except:
+            self.delete_all_filters()
+        while True:
+            try:
+                WebDriverWait(self.driver, 15).until(
+                    EC.element_to_be_clickable((By.XPATH, '//td[@class="rG"]')))
+                break
+            except TimeoutException as ex:
+                self.driver.refresh()
+
+        while True:
+            try:
+                self.driver.find_element(By.XPATH, '(//td[contains(@class,"qS")]//span[@class="sA"])[2]').click()
+                random_sleep(1, 2)
+                self.actions.send_keys(Keys.ENTER)
+                self.actions.perform()
+                random_sleep(1, 2)
+            except:
+                break
+
     def create_filter_for_reply(self):
         self.driver.find_element(By.XPATH, '//button[@gh="sda"]').click()
         random_sleep(1, 3)
-        self.driver.find_element(By.XPATH, '//div[@class="aQh"]/input').send_keys('1')
+        self.driver.find_element(By.XPATH, '//div[@class="aQh"]/input').send_keys('0')
         random_sleep(1, 3)
         self.driver.find_element(By.XPATH, '(//div[@class="aQj"]/div)[1]').click()
         random_sleep(0.3, 0.8)
         self.driver.find_element(By.XPATH, '((//div[@class="aQj"]/div)[2]/div)[3]').click()
         random_sleep(1, 2)
+
+        self.driver.find_element(By.XPATH, '(//span[@class="aQc"]/div)[1]').click()
+        random_sleep(0.3, 0.8)
+        self.driver.find_element(By.XPATH, '(//span[@class="aQc"]//div[@class="J-N"])[8]').click()
+        random_sleep(1, 2)
         self.driver.find_element(By.XPATH, '//div[@class="acM"]').click()
+
+        random_sleep(1, 1.5)
+        self.actions.send_keys(Keys.ENTER)
+        self.actions.perform()
 
         WebDriverWait(self.driver, 8).until(EC.element_to_be_clickable((By.XPATH, '//div[@class="nH lZ"]/label')))
 
@@ -705,7 +757,8 @@ class Gmail:
                                                                '@class="qw CY"]/span[@role="link"]')
             for delete_elem in delete_elems:
                 delete_elem.click()
-                WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, '(//div[@role="alertdialog"]//button)[1]')))
+                WebDriverWait(self.driver, 5).until(
+                    EC.element_to_be_clickable((By.XPATH, '(//div[@role="alertdialog"]//button)[1]')))
                 random_sleep(0.3, 0.5)
                 self.driver.find_element(By.XPATH, '(//div[@role="alertdialog"]//button)[1]').click()
                 random_sleep(0.5, 1)
@@ -715,7 +768,8 @@ class Gmail:
     def set_new_from(self, from_name, from_email=None):
         try:
             self.driver.get('https://mail.google.com/mail/u/0/#settings/accounts')
-            WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.XPATH, '//td[@class="rc CY"]/span')))
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.XPATH, '//td[@class="rc CY"]/span')))
         except:
             self.set_new_from_name(from_name)
         random_sleep(2, 4)
@@ -799,7 +853,8 @@ class Gmail:
 
     def detect_bounce(self):
         try:
-            self.driver.get('https://mail.google.com/mail/u/0/#advanced-search/from=mailer-daemon@googlemail.com&has=550+5.1.1')
+            self.driver.get(
+                'https://mail.google.com/mail/u/0/#advanced-search/from=mailer-daemon@googlemail.com&has=550+5.1.1')
             self.driver.refresh()
         except:
             self.detect_bounce()
@@ -821,7 +876,8 @@ class Gmail:
                 try:
                     WebDriverWait(self.driver, 8).until(
                         EC.element_to_be_clickable((By.XPATH, '//a[@style="color:#212121;text-decoration:none"]/b')))
-                    bounce_elem = self.driver.find_element(By.XPATH, '//a[@style="color:#212121;text-decoration:none"]/b')
+                    bounce_elem = self.driver.find_element(By.XPATH,
+                                                           '//a[@style="color:#212121;text-decoration:none"]/b')
                     bounces.append(bounce_elem.text)
                     print(bounces)
                     random_sleep(0.5, 1)
@@ -842,12 +898,11 @@ class Gmail:
         WebDriverWait(self.driver, 8).until(
             EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
         random_sleep(1, 3)
-        actions = ActionChains(self.driver)
-        actions.send_keys(Keys.ESCAPE)
-        actions.perform()
+        self.actions.send_keys(Keys.ESCAPE)
+        self.actions.perform()
         random_sleep(1, 1.5)
-        actions.send_keys(Keys.ESCAPE)
-        actions.perform()
+        self.actions.send_keys(Keys.ESCAPE)
+        self.actions.perform()
         random_sleep(1, 1.5)
 
         blocked = []

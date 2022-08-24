@@ -62,6 +62,10 @@ def do_login(id):
                 login_result = gmail.do_login()
                 driver.save_screenshot('screen.png')
                 if login_result is True:
+                    api.set_current_process(profile.get('email'), 'Change Language to English...')
+                    gmail.change_language('English', 'United States')
+                    api.set_current_process(profile.get('email'), 'Delete all filters...')
+                    gmail.delete_all_filters()
                     api.set_current_process(profile.get('email'), 'Create inbox filter...')
                     gmail.create_filter_for_reply()
                     driver.close()
