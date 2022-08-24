@@ -91,7 +91,11 @@ def do_login(id):
                     api.set_current_process(profile.get('email'), 'Logged Process terminated, in failed.')
                     return False
             except Exception as ex:
-                return ex
+                driver.save_screenshot('screen.png')
+                with open('logs.txt', 'a+') as f:
+                    f.write(f'{ex}\n')
+                    f.flush()
+                    f.close()
 
 
 @app.get("/reply/{account_id}/{reply_id}")
