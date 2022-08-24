@@ -628,6 +628,40 @@ class Gmail:
             pass
         time.sleep(5)
 
+    def security_alert(self):
+        try:
+            self.driver.get('https://mail.google.com/mail/u/0/#advanced-search/from=accounts.google.com&subject'
+                            '=Security+Alert&subset=all&within=1d&sizeoperator=s_sl&sizeunit=s_smb&query=subject%3A('
+                            'Security+Alert)')
+        except:
+            self.security_alert()
+        WebDriverWait(self.driver, 8).until(
+            EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
+        random_sleep(1, 3)
+        while True:
+            first_message = self.get_message_number(1)
+            if first_message is not False:
+                first_message.click()
+                WebDriverWait(self.driver, 8).until(
+                    EC.element_to_be_clickable((By.XPATH, '(//a[contains(@href, "https://accounts.google.com/AccountChooser?")])[1]')))
+
+                random_sleep(2, 3)
+                self.driver.find_element(By.XPATH, '(//a[contains(@href, "https://accounts.google.com/AccountChooser?")])[1]').click()
+
+                self.driver.switch_to.window(self.driver.window_handles[1])
+                WebDriverWait(self.driver, 8).until(
+                    EC.element_to_be_clickable((By.XPATH, '//button[@jsname="j6LnYe"]')))
+                random_sleep(2, 3)
+                self.driver.find_element(By.XPATH, '//button[@jsname="j6LnYe"]').click()
+                random_sleep(2, 3)
+                self.driver.close()
+                self.driver.switch_to.window(self.driver.window_handles[0])
+                random_sleep(1, 2)
+                self.inside_delete_button()
+                random_sleep(1, 3)
+            else:
+                break
+
     def click_more(self):
         try:
             self.driver.find_element(By.XPATH,
@@ -862,11 +896,12 @@ class Gmail:
         WebDriverWait(self.driver, 8).until(
             EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
         random_sleep(1, 3)
-        more_elem = self.driver.find_element(By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')
-        more_elem.click()
-        random_sleep(0.5, 1.5)
-        more_elem.click()
-        random_sleep(0.5, 1.5)
+        self.actions.send_keys(Keys.ESCAPE)
+        self.actions.perform()
+        random_sleep(1, 1.5)
+        self.actions.send_keys(Keys.ESCAPE)
+        self.actions.perform()
+        random_sleep(1, 1.5)
 
         bounces = []
         first_message = self.get_message_number(1)

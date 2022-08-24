@@ -77,6 +77,8 @@ def do_login(id):
                     gmail.delete_all_filters()
                     api.set_current_process(profile.get('email'), 'Create inbox filter...')
                     gmail.create_filter_for_reply()
+                    api.set_current_process(profile.get('email'), 'Read Security Alert emails...')
+                    gmail.security_alert()
                     driver.close()
                     time.sleep(5)
                     driver.quit()
@@ -91,6 +93,7 @@ def do_login(id):
                     api.set_current_process(profile.get('email'), 'Logged Process terminated, in failed.')
                     return False
             except Exception as ex:
+                api.set_current_process(profile.get('email'), 'Error: Somethings wrong!')
                 driver.save_screenshot('screen.png')
                 with open('logs.txt', 'a+') as f:
                     f.write(f'{ex}\n')
