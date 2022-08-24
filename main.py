@@ -42,6 +42,15 @@ def screen():
         return 'File not found'
 
 
+@app.get("/logs")
+def logs():
+    file_name = 'logs.txt'
+    if exists(file_name):
+        return FileResponse(path=file_name, filename=file_name, media_type='image/txt')
+    else:
+        return 'File not found'
+
+
 @app.get("/login/{id}")
 async def login(id: int, background_tasks: BackgroundTasks):
     background_tasks.add_task(do_login, id)
