@@ -33,6 +33,11 @@ def index():
     return "Hello, this is the index page, that's mean that all things are installed fine!"
 
 
+@app.get("/kill")
+def kill():
+    os.system("pkill chrome")
+
+
 @app.get("/screen")
 def screen():
     file_name = 'screen.png'
