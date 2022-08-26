@@ -99,12 +99,13 @@ def do_login(id):
                     api.set_current_process(profile.get('email'), 'Logged Process terminated, in failed.')
                     return False
             except Exception as ex:
-                api.set_current_process(profile.get('email'), 'Error: Somethings wrong!')
-                driver.save_screenshot('screen.png')
-                with open('logs.txt', 'a+') as f:
-                    f.write(f'{ex}\n')
-                    f.flush()
-                    f.close()
+                if driver is not None:
+                    api.set_current_process(profile.get('email'), 'Error: Somethings wrong!')
+                    driver.save_screenshot('screen.png')
+                    with open('logs.txt', 'a+') as f:
+                        f.write(f'{ex}\n')
+                        f.flush()
+                        f.close()
                 return ex
 
 
