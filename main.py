@@ -33,9 +33,10 @@ def index():
     return "Hello, this is the index page, that's mean that all things are installed fine!"
 
 
-@app.get("/kill")
-def kill():
+@app.get("/kill/{email}")
+def kill(email):
     os.system("pkill chrome")
+    api.set_current_process(email, '')
 
 
 @app.get("/screen")
