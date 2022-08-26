@@ -884,24 +884,33 @@ class Gmail:
         WebDriverWait(self.driver, 8).until(
             EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji T-I-Js-IF aaq T-I-ax7 L3"]')))
         random_sleep(1, 3)
+
+        random_sleep(1, 3)
         self.driver.find_element(By.XPATH, '//div[@class="T-I J-J5-Ji T-I-Js-IF aaq T-I-ax7 L3"]').click()
         WebDriverWait(self.driver, 8).until(
             EC.presence_of_element_located((By.XPATH, '//div[@class="ajR"]')))
         random_sleep(0.8, 1.5)
-        text_area = self.driver.find_element(By.XPATH, '//div[@class="Am aO9 Al editable LW-avf tS-tW"]')
-        if not with_attachment:
-            text_area.send_keys(Keys.CONTROL, 'a')
-            time.sleep(0.5)
-            text_area.send_keys(Keys.BACK_SPACE)
-            time.sleep(0.5)
-            text_area.send_keys(Keys.BACK_SPACE)
-            time.sleep(0.5)
-            text_area.send_keys(Keys.BACK_SPACE)
-            time.sleep(0.5)
 
-        self.driver.execute_script(f"arguments[0].innerHTML = `{creative}`;", text_area)
-        time.sleep(5)
-        self.driver.find_element(By.XPATH, '//div[@class="T-I J-J5-Ji aoO v7 T-I-atl L3"]').click()
+        # check if reply email is already detected as bounce
+        email = self.driver.find_element(By.XPATH, '//div[@class="oL aDm az9"]/span[@email]').get_attribute('email')
+        if api.is_bounce(email):
+            self.driver.find_element(By.XPATH, '//div[@class="oh J-Z-I J-J5-Ji T-I-ax7"]').click()
+        else:
+            random_sleep(0.8, 1.5)
+            text_area = self.driver.find_element(By.XPATH, '//div[@class="Am aO9 Al editable LW-avf tS-tW"]')
+            if not with_attachment:
+                text_area.send_keys(Keys.CONTROL, 'a')
+                time.sleep(0.5)
+                text_area.send_keys(Keys.BACK_SPACE)
+                time.sleep(0.5)
+                text_area.send_keys(Keys.BACK_SPACE)
+                time.sleep(0.5)
+                text_area.send_keys(Keys.BACK_SPACE)
+                time.sleep(0.5)
+
+            self.driver.execute_script(f"arguments[0].innerHTML = `{creative}`;", text_area)
+            time.sleep(5)
+            self.driver.find_element(By.XPATH, '//div[@class="T-I J-J5-Ji aoO v7 T-I-atl L3"]').click()
 
     def detect_bounce(self):
         try:
@@ -931,8 +940,9 @@ class Gmail:
                         EC.element_to_be_clickable((By.XPATH, '//a[@style="color:#212121;text-decoration:none"]/b')))
                     bounce_elem = self.driver.find_element(By.XPATH,
                                                            '//a[@style="color:#212121;text-decoration:none"]/b')
-                    bounces.append(bounce_elem.text)
-                    print(bounces)
+                    bounce = bounce_elem.text
+                    if bounce not in bounces:
+                        bounces.append(bounce)
                     random_sleep(0.5, 1)
                     if not self.go_to_next_message():
                         break

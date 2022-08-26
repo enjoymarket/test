@@ -78,3 +78,26 @@ def increase_total_replies(email):
 def add_blocked_sender(email, sender):
     link = f"{os.getenv('MASTER_API')}/add-blocked-sender/{email}/{sender}"
     return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
+
+
+def add_bounce(email):
+    link = f"{os.getenv('MASTER_API')}/add-bounce/{email}"
+    return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
+
+
+def is_bounce(email):
+    link = f"{os.getenv('MASTER_API')}/is-bounce/{email}"
+    if requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text == '1':
+        return True
+    return False
+
+
+def set_limit_exceeded(email):
+    link = f"{os.getenv('MASTER_API')}/set-limit-exceeded/{email}"
+    return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')})
+
+
+def is_limit_exceeded(email):
+    link = f"{os.getenv('MASTER_API')}/is-limit-exceeded/{email}"
+    response = requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
+    return response

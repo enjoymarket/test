@@ -134,8 +134,13 @@ def do_reply(account_id, reply_id):
                     api.set_current_process(profile.get('email'), 'Filter By Subject...')
                     subject = api.get_reply_subject(reply_id)
                     gmail.filter_by_subject(subject=subject)
+
+                    count = 0
                     while True:
                         # try:
+                        # Sleep when the limit is exceeded
+                        time.sleep(api.is_limit_exceeded(profile.get('email')))
+
                         random_sleep(1, 3)
                         driver.refresh()
                         first_message = gmail.get_message_number(1)
@@ -149,6 +154,7 @@ def do_reply(account_id, reply_id):
                                 api.increase_total_replies(profile.get('email'))
                                 time.sleep(1)
                                 gmail.inside_delete_button()
+                                count = count + 1
                             elif int(status) == 2:
                                 print('paused')
                                 api.set_current_process(profile.get('email'), 'Replies paused...')
@@ -156,6 +162,22 @@ def do_reply(account_id, reply_id):
                             elif int(status) == 0:
                                 api.set_current_process(profile.get('email'), 'Replies stopped...')
                                 break
+
+                            if count == 3:
+                                api.set_current_process(profile.get('email'), 'Check if sender was blocked...')
+                                blocked_senders = gmail.detect_sender_blocked()
+                                for blocked_sender in blocked_senders:
+                                    api.add_blocked_sender(blocked_sender.get('email'), blocked_sender.get('sender'))
+
+                                api.set_current_process(profile.get('email'), 'Check for bounce messages...')
+                                bounces = gmail.detect_bounce()
+                                for bounce in bounces:
+                                    api.add_bounce(bounce)
+
+                                api.set_current_process(profile.get('email'), 'Check for bounce messages...')
+                                if gmail.detect_limit():
+                                    api.set_limit_exceeded(profile.get('email'))
+                                count = 0
                         else:
                             break
                         # except:
