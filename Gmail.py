@@ -637,8 +637,11 @@ class Gmail:
         all_recognized = False
         while True:
             self.driver.refresh()
-            WebDriverWait(self.driver, 8).until(
-                EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
+            try:
+                WebDriverWait(self.driver, 20).until(
+                    EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
+            except TimeoutException as ex:
+                continue
             random_sleep(1, 3)
             self.actions.send_keys(Keys.ESCAPE)
             self.actions.perform()
@@ -657,9 +660,9 @@ class Gmail:
             first_message = self.get_message_number(1)
             if first_message is not False:
                 first_message.click()
-                WebDriverWait(self.driver, 8).until(
-                    EC.element_to_be_clickable((By.XPATH, '(//a[contains(@href,"https://accounts.google.com/AccountChooser?")])[1]')))
-
+                random_sleep(2, 3)
+                WebDriverWait(self.driver, 20).until(
+                    EC.presence_of_element_located((By.XPATH, '(//a[contains(@href,"https://accounts.google.com/AccountChooser?")])[1]')))
                 random_sleep(2, 3)
                 self.driver.find_element(By.XPATH, '(//a[contains(@href, "https://accounts.google.com/AccountChooser?")])[1]').click()
 
