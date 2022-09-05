@@ -51,7 +51,11 @@ def get_login_info(id):
 
 def get_from(id):
     link = f"{os.getenv('MASTER_API')}/get-from/{id}"
-    return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).json()
+    response = requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')})
+    print(response.text)
+    if response.text == "0":
+        return None
+    return response.json()
 
 
 def get_reply_subject(id):
@@ -80,6 +84,13 @@ def add_blocked_sender(email, sender):
     return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
 
 
+def is_sender_blocked(email, sender):
+    link = f"{os.getenv('MASTER_API')}/is-sender-blocked/{email}/{sender}"
+    if requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text == '1':
+        return True
+    return False
+
+
 def add_bounce(email):
     link = f"{os.getenv('MASTER_API')}/add-bounce/{email}"
     return requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
@@ -99,5 +110,4 @@ def set_limit_exceeded(email):
 
 def is_limit_exceeded(email):
     link = f"{os.getenv('MASTER_API')}/is-limit-exceeded/{email}"
-    response = requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
-    return response
+    return int(requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text)

@@ -10,6 +10,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from api import api
 
@@ -628,9 +629,25 @@ class Gmail:
             pass
         time.sleep(5)
 
+    def change_display_language(self, language='en'):
+        try:
+            self.driver.get('https://mail.google.com/mail/u/0/#settings/general')
+        except:
+            self.change_display_language(language)
+
+        WebDriverWait(self.driver, 15).until(
+            EC.element_to_be_clickable((By.XPATH, '//select[@class="a5p"]')))
+        random_sleep(0.5, 1.5)
+        select = Select(self.driver.find_element(By.XPATH, '//select[@class="a5p"]'))
+        select.select_by_value(language)
+        random_sleep(0.5, 1.5)
+        self.driver.find_element(By.XPATH, '//button[@guidedhelpid="save_changes_button"]').click()
+        time.sleep(5)
+
     def security_alert(self):
         try:
-            self.driver.get('https://mail.google.com/mail/u/0/#advanced-search/from=accounts.google.com&subject=Security+Alert&subset=all&within=1d&sizeoperator=s_sl&sizeunit=s_smb&query=subject%3A(Security+Alert)')
+            self.driver.get(
+                'https://mail.google.com/mail/u/0/#advanced-search/from=accounts.google.com&subject=Security+Alert&subset=all&within=1d&sizeoperator=s_sl&sizeunit=s_smb&query=subject%3A(Security+Alert)')
         except:
             self.security_alert()
 
@@ -662,9 +679,11 @@ class Gmail:
                 first_message.click()
                 random_sleep(2, 3)
                 WebDriverWait(self.driver, 20).until(
-                    EC.presence_of_element_located((By.XPATH, '(//a[contains(@href,"https://accounts.google.com/AccountChooser?")])[1]')))
+                    EC.presence_of_element_located(
+                        (By.XPATH, '(//a[contains(@href,"https://accounts.google.com/AccountChooser?")])[1]')))
                 random_sleep(2, 3)
-                self.driver.find_element(By.XPATH, '(//a[contains(@href, "https://accounts.google.com/AccountChooser?")])[1]').click()
+                self.driver.find_element(By.XPATH,
+                                         '(//a[contains(@href, "https://accounts.google.com/AccountChooser?")])[1]').click()
 
                 self.driver.switch_to.window(self.driver.window_handles[1])
                 try:
@@ -682,6 +701,25 @@ class Gmail:
                 random_sleep(1, 3)
             else:
                 break
+
+    def is_alert_present(self):
+        pass
+
+    def remove_alert(self):
+        try:
+            WebDriverWait(self.driver, 2).until(EC.alert_is_present())
+            try:
+                alert = self.driver.switch_to.alert()
+                print(alert.text)
+                alert.accept()
+                print("alert removed successfully")
+                self.driver.switch_to.window(self.driver.window_handles[0])
+            except:
+                self.driver.execute_script("window.onbeforeunload = function() {};")
+                self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
+                print("Escape clicked")
+        except:
+            print("No Alerts found");
 
     def click_more(self):
         try:
@@ -713,6 +751,10 @@ class Gmail:
         except:
             return False
 
+    def click_back(self):
+        self.driver.find_element(By.XPATH,
+                                 f'//div[contains(@class,"T-I J-J5-Ji lS T-I-ax7")]').click()
+
     def open_folder(self, folder_name):
         wait_until_internet_connectivity_is_good()
         try:
@@ -739,7 +781,11 @@ class Gmail:
         try:
             self.driver.get(
                 f'https://mail.google.com/mail/u/0/#search/in%3A{folder_name}+subject%3A{urllib.parse.quote(subject)}')
-        except TimeoutException as ex:
+            self.remove_alert()
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.XPATH, '//div[@class="T-I T-I-KE L3"]'))
+            )
+        except:
             self.filter_by_subject(folder_name, subject)
 
     def delete_all_filters(self):
@@ -869,14 +915,32 @@ class Gmail:
         except:
             return 0
 
+    def is_account_need_rest(self, refresh=False):
+        try:
+            if refresh:
+                self.driver.refresh()
+            self.remove_alert()
+            WebDriverWait(self.driver, 8).until(
+                EC.element_to_be_clickable((By.XPATH, '//a[@href="https://www.google.com/appsstatus"]')))
+
+            print('Account need rest, we will retry in 15 min')
+            return True
+        except TimeoutException as ex:
+            return False
+
     def get_message_number(self, number):
         try:
             WebDriverWait(self.driver, 8).until(
-                EC.element_to_be_clickable((By.XPATH, f'(//tr[@jsmodel="nXDxbd"])[{number}]')))
+                EC.element_to_be_clickable((By.XPATH,
+                                            f'//div[contains(@class,"BltHke nH oy8Mbf") and not(contains(@style,"display: none;"))]//tr[contains(@class,"zA")][{number}]')))
             return self.driver.find_element(
-                By.XPATH, f'(//tr[@jsmodel="nXDxbd"])[{number}]')
+                By.XPATH,
+                f'//div[contains(@class,"BltHke nH oy8Mbf") and not(contains(@style,"display: none;"))]//tr[contains(@class,"zA")][{number}]')
         except TimeoutException as ex:
             return False
+        except Exception as ex:
+            self.driver.refresh()
+            self.get_message_number(number)
 
     def inside_get_subject(self):
         WebDriverWait(self.driver, 8).until(
@@ -884,122 +948,203 @@ class Gmail:
         return self.driver.find_element(By.XPATH, '//h2[@data-thread-perm-id]').text
 
     def reply(self, creative, with_attachment):
-        WebDriverWait(self.driver, 8).until(
-            EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji T-I-Js-IF aaq T-I-ax7 L3"]')))
-        random_sleep(1, 3)
+        try:
+            self.remove_alert()
+            WebDriverWait(self.driver, 8).until(
+                EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji T-I-Js-IF aaq T-I-ax7 L3"]')))
+            random_sleep(1, 3)
 
-        random_sleep(1, 3)
-        self.driver.find_element(By.XPATH, '//div[@class="T-I J-J5-Ji T-I-Js-IF aaq T-I-ax7 L3"]').click()
-        WebDriverWait(self.driver, 8).until(
-            EC.presence_of_element_located((By.XPATH, '//div[@class="ajR"]')))
-        random_sleep(0.8, 1.5)
-
-        # check if reply email is already detected as bounce
-        email = self.driver.find_element(By.XPATH, '//div[@class="oL aDm az9"]/span[@email]').get_attribute('email')
-        if api.is_bounce(email):
-            self.driver.find_element(By.XPATH, '//div[@class="oh J-Z-I J-J5-Ji T-I-ax7"]').click()
-        else:
+            random_sleep(1, 3)
+            self.driver.find_element(By.XPATH, '//div[@class="T-I J-J5-Ji T-I-Js-IF aaq T-I-ax7 L3"]').click()
+            WebDriverWait(self.driver, 8).until(
+                EC.presence_of_element_located((By.XPATH, '//div[@class="ajR"]')))
             random_sleep(0.8, 1.5)
-            text_area = self.driver.find_element(By.XPATH, '//div[@class="Am aO9 Al editable LW-avf tS-tW"]')
-            if not with_attachment:
-                text_area.send_keys(Keys.CONTROL, 'a')
-                time.sleep(0.5)
-                text_area.send_keys(Keys.BACK_SPACE)
-                time.sleep(0.5)
-                text_area.send_keys(Keys.BACK_SPACE)
-                time.sleep(0.5)
-                text_area.send_keys(Keys.BACK_SPACE)
-                time.sleep(0.5)
 
-            self.driver.execute_script(f"arguments[0].innerHTML = `{creative}`;", text_area)
-            time.sleep(5)
-            self.driver.find_element(By.XPATH, '//div[@class="T-I J-J5-Ji aoO v7 T-I-atl L3"]').click()
+            # check if reply email is already detected as bounce
+            while True:
+                try:
+                    email = self.driver.find_element(By.XPATH, '//div[@class="oL aDm az9"]/span[@email]').get_attribute('email')
+                    break
+                except:
+                    random_sleep(0.8, 1.5)
+                    pass
+            sender = '.'.join(email.split('@')[1].split('.')[-2:])
+            print(f'Reply email: {email} => {api.is_bounce(email)}')
+            print(f'Reply email: {email} => {api.is_sender_blocked(self.email, sender)}')
+            if api.is_sender_blocked(self.email, sender) or api.is_bounce(email):
+                self.driver.find_element(By.XPATH, '//div[@class="oh J-Z-I J-J5-Ji T-I-ax7"]').click()
+                random_sleep(1, 3)
+                self.inside_delete_button()
+                return False
+            else:
+                random_sleep(0.8, 1.5)
+                text_area = self.driver.find_element(By.XPATH, '//div[@class="Am aO9 Al editable LW-avf tS-tW"]')
+                if not with_attachment:
+                    text_area.send_keys(Keys.CONTROL, 'a')
+                    time.sleep(0.5)
+                    text_area.send_keys(Keys.BACK_SPACE)
+                    time.sleep(0.5)
+                    text_area.send_keys(Keys.BACK_SPACE)
+                    time.sleep(0.5)
+                    text_area.send_keys(Keys.BACK_SPACE)
+                    time.sleep(0.5)
+
+                self.driver.execute_script(f"arguments[0].innerHTML = `{creative}`;", text_area)
+                time.sleep(5)
+                self.driver.find_element(By.XPATH, '//div[@class="T-I J-J5-Ji aoO v7 T-I-atl L3"]').click()
+                random_sleep(1, 3)
+                self.inside_delete_button()
+                return True
+        except TimeoutException as ex:
+            self.driver.refresh()
+            self.reply(creative, with_attachment)
+
+    def compose(self, from_email, to, subject, creative):
+        try:
+            WebDriverWait(self.driver, 15).until(
+                EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I T-I-KE L3"]')))
+        except TimeoutException as ex:
+            self.driver.refresh()
+            self.compose(to, creative)
+        self.driver.find_element(By.XPATH, '//div[@class="T-I T-I-KE L3"]').click()
+        random_sleep(1, 3)
+        self.actions.send_keys(to)
+        self.actions.perform()
+        random_sleep(1, 3)
+
+        self.actions.send_keys(Keys.TAB * 2)
+        self.actions.perform()
+
+        random_sleep(1, 3)
+        self.actions.send_keys(subject)
+        self.actions.perform()
+
+        random_sleep(5, 8)
+        text_area = self.driver.find_element(By.XPATH, '//div[@class="Am Al editable LW-avf tS-tW"]')
+        self.driver.execute_script(f"arguments[0].innerHTML = `{creative}`;", text_area)
+        time.sleep(5)
+        self.driver.find_element(By.XPATH, '//div[@class="T-I J-J5-Ji aoO v7 T-I-atl L3"]').click()
+        time.sleep(3)
 
     def detect_bounce(self):
         try:
             self.driver.get(
-                'https://mail.google.com/mail/u/0/#advanced-search/from=mailer-daemon@googlemail.com&has=550+5.1.1')
-            self.driver.refresh()
+                'https://mail.google.com/mail/u/0/#search/in%3Ainbox+from%3A(mailer-daemon%40googlemail.com)+550+5.1.1')
         except:
             self.detect_bounce()
 
-        WebDriverWait(self.driver, 8).until(
-            EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
-        random_sleep(1, 3)
-        self.actions.send_keys(Keys.ESCAPE)
-        self.actions.perform()
-        random_sleep(1, 1.5)
-        self.actions.send_keys(Keys.ESCAPE)
-        self.actions.perform()
-        random_sleep(1, 1.5)
-
         bounces = []
-        first_message = self.get_message_number(1)
-        if first_message is not False:
-            first_message.click()
-            while True:
-                try:
-                    WebDriverWait(self.driver, 8).until(
-                        EC.element_to_be_clickable((By.XPATH, '//a[@style="color:#212121;text-decoration:none"]/b')))
-                    bounce_elem = self.driver.find_element(By.XPATH,
-                                                           '//a[@style="color:#212121;text-decoration:none"]/b')
-                    bounce = bounce_elem.text
-                    if bounce not in bounces:
-                        bounces.append(bounce)
-                    random_sleep(0.5, 1)
-                    if not self.go_to_next_message():
+        error = False
+        while True:
+            if error:
+                return self.detect_bounce()
+            try:
+                self.remove_alert()
+                if self.is_account_need_rest():
+                    time.sleep(900)
+                    self.detect_bounce()
+                WebDriverWait(self.driver, 15).until(
+                    EC.presence_of_element_located((By.XPATH, '//div[@class="T-I T-I-KE L3"]'))
+                )
+
+                random_sleep(1, 3)
+                self.actions.send_keys(Keys.ESCAPE)
+                self.actions.perform()
+                random_sleep(1, 1.5)
+                self.actions.send_keys(Keys.ESCAPE)
+                self.actions.perform()
+                random_sleep(1, 1.5)
+            except:
+                break
+            first_message = self.get_message_number(1)
+            if first_message is not False:
+                first_message.click()
+                while True:
+                    try:
+                        WebDriverWait(self.driver, 8).until(
+                            EC.presence_of_element_located(
+                                (By.XPATH, '//a[@style="color:#212121;text-decoration:none"]/b')))
+                        bounce_elem = self.driver.find_element(By.XPATH,
+                                                               '//a[@style="color:#212121;text-decoration:none"]/b')
+                        bounce = bounce_elem.text
+                        if bounce not in bounces:
+                            bounces.append(bounce)
+
+                        print(f'bounces : {bounces}')
+                        random_sleep(0.5, 1)
+                        self.archive()
+                        random_sleep(0.5, 1)
+                        self.click_back()
+                    except:
+                        error = True
                         break
-                except:
-                    break
-        return bounces
+            else:
+                print('break bounces')
+                return bounces
+        self.detect_bounce()
 
     def detect_sender_blocked(self):
         try:
             self.driver.get(
-                'https://mail.google.com/mail/u/0/#advanced-search/from=mailer-daemon@googlemail.com&has=550+5.1.0')
-            self.driver.refresh()
+                'https://mail.google.com/mail/u/0/#search/in%3Ainbox+from%3A(mailer-daemon%40googlemail.com)+550+5.1.0')
         except:
-            self.detect_bounce()
-
-        WebDriverWait(self.driver, 8).until(
-            EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
-        random_sleep(1, 3)
-        self.actions.send_keys(Keys.ESCAPE)
-        self.actions.perform()
-        random_sleep(1, 1.5)
-        self.actions.send_keys(Keys.ESCAPE)
-        self.actions.perform()
-        random_sleep(1, 1.5)
+            self.detect_sender_blocked()
 
         blocked = []
-        first_message = self.get_message_number(1)
-        if first_message is not False:
-            first_message.click()
-            while True:
-                try:
-                    WebDriverWait(self.driver, 8).until(
-                        EC.element_to_be_clickable((By.XPATH, '//a[@style="color:#212121;text-decoration:none"]/b')))
-                    bounce_elem = self.driver.find_element(By.XPATH,
-                                                           '//a[@style="color:#212121;text-decoration:none"]/b')
-                    block = '.'.join(bounce_elem.text.split('@')[1].split('.')[-2:])
-                    email_elem = self.driver.find_element(By.XPATH, '//p[@style="font-family:monospace"]//a[contains('
-                                                                    '@href, "mailto")]')
-                    email = email_elem.text
-                    e = {
-                        'email': email,
-                        'sender': block
-                    }
-                    if e not in blocked:
-                        blocked.append(e)
-                        print(blocked)
-                    random_sleep(0.5, 1)
-                    if not self.go_to_next_message():
+        while True:
+            try:
+                self.remove_alert()
+                if self.is_account_need_rest():
+                    time.sleep(900)
+                    self.detect_sender_blocked()
+                WebDriverWait(self.driver, 15).until(
+                    EC.presence_of_element_located((By.XPATH, '//div[@class="T-I T-I-KE L3"]'))
+                )
+
+                random_sleep(1, 3)
+                self.actions.send_keys(Keys.ESCAPE)
+                self.actions.perform()
+                random_sleep(1, 1.5)
+                self.actions.send_keys(Keys.ESCAPE)
+                self.actions.perform()
+                random_sleep(1, 1.5)
+            except:
+                break
+            first_message = self.get_message_number(1)
+            if first_message is not False:
+                first_message.click()
+                while True:
+                    try:
+                        WebDriverWait(self.driver, 8).until(
+                            EC.presence_of_element_located(
+                                (By.XPATH, '//a[@style="color:#212121;text-decoration:none"]/b')))
+                        bounce_elem = self.driver.find_element(By.XPATH,
+                                                               '//a[@style="color:#212121;text-decoration:none"]/b')
+                        block = '.'.join(bounce_elem.text.split('@')[1].split('.')[-2:])
+                        email_elem = self.driver.find_element(By.XPATH,
+                                                              '//p[@style="font-family:monospace"]//a[contains('
+                                                              '@href, "mailto")]')
+                        email = email_elem.text
+                        e = {
+                            'email': email,
+                            'sender': block
+                        }
+                        if e not in blocked:
+                            blocked.append(e)
+                            print(blocked)
+
+                        print(f'blocked : {blocked}')
+                        random_sleep(0.5, 1)
+                        self.archive()
+                        random_sleep(0.5, 1)
+                        self.click_back()
+                    except:
                         break
-                except:
-                    break
-        for block in blocked:
-            api.add_blocked_sender(block.get('email'), block.get('sender'))
-        return blocked
+            else:
+                print('break sender blocked')
+                print(blocked)
+                return blocked
+        self.detect_sender_blocked()
 
     def detect_limit(self):
         try:
@@ -1008,12 +1153,14 @@ class Gmail:
                 f'mailer-daemon%40googlemail.com)+limit&isrefinement=true&datestart='
                 f'{datetime.strftime(datetime.now() - timedelta(1), "%Y-%m-%d")}&dateend='
                 f'{datetime.strftime(datetime.now(), "%Y-%m-%d")}&daterangetype=custom_range')
-            self.driver.refresh()
+            self.remove_alert()
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.XPATH, '//div[@class="T-I T-I-KE L3"]')))
         except:
-            self.detect_bounce()
-
-        WebDriverWait(self.driver, 8).until(
-            EC.element_to_be_clickable((By.XPATH, '//div[@class="T-I J-J5-Ji nf T-I-ax7 L3"]')))
+            self.remove_alert()
+            if self.is_account_need_rest():
+                time.sleep(900)
+            self.detect_limit()
 
         first_message = self.get_message_number(1)
         if first_message is not False:
