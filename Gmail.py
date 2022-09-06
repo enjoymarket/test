@@ -869,6 +869,7 @@ class Gmail:
     def set_new_from(self, from_name, from_email=None):
         try:
             self.driver.get('https://mail.google.com/mail/u/0/#settings/accounts')
+            self.remove_alert()
             WebDriverWait(self.driver, 15).until(
                 EC.presence_of_element_located((By.XPATH, '//td[@class="rc CY"]/span')))
         except:
