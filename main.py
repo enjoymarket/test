@@ -232,7 +232,7 @@ def do_reply(account_id, reply_id):
                                     print(f'--------------------------------')
                                     print(f'Start datetime: {start_datetime}')
                         except TimeoutError as error:
-                            continue
+                            print('Timeout Error')
 
                     time.sleep(5)
                     driver.quit()
