@@ -170,7 +170,7 @@ def do_reply(account_id, reply_id):
                                 api.set_current_process(profile.get('email'), 'Replies stopped...')
                                 break
                             elif int(status) == 1:
-                                # count = 3
+                                print('Reply process')
                                 if count < reply_pack:
                                     api.set_current_process(profile.get('email'), 'Filter By Subject...')
                                     gmail.filter_by_subject(subject=subject)
