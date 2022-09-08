@@ -125,146 +125,146 @@ def do_reply(account_id, reply_id):
             driver = get_driver(profile.get('email'))
             # return True
             gmail = Gmail(driver, profile.get('email'), profile.get('password'), profile.get('recovery_email'))
-            # try:
-            api.set_current_process(profile.get('email'), 'do login...')
-            print('do login')
-            gmail.go_to_login_page()
-            login_result = gmail.do_login()
-            if login_result is True:
-                random_sleep(4, 6)
-                if gmail.is_account_need_rest():
-                    time.sleep(900)
-                from_response = api.get_from(reply_id)
-                if from_response is not None:
-                    api.set_current_process(profile.get('email'), 'setup new from name and from email...')
-                    gmail.set_new_from(from_response.get('from_name'), from_response.get('from_email'))
+            try:
+                api.set_current_process(profile.get('email'), 'do login...')
+                print('do login')
+                gmail.go_to_login_page()
+                login_result = gmail.do_login()
+                if login_result is True:
+                    random_sleep(4, 6)
+                    if gmail.is_account_need_rest():
+                        time.sleep(900)
+                    from_response = api.get_from(reply_id)
+                    if from_response is not None:
+                        api.set_current_process(profile.get('email'), 'setup new from name and from email...')
+                        gmail.set_new_from(from_response.get('from_name'), from_response.get('from_email'))
 
-                subject = api.get_reply_subject(reply_id)
+                    subject = api.get_reply_subject(reply_id)
 
-                count = 0
-                pack_count_for_check = 0
-                pack_count_for_limit = 0
+                    count = 0
+                    pack_count_for_check = 0
+                    pack_count_for_limit = 0
 
-                # do bounce, block, limit check in certain moment
-                do_check = random.randint(3, 10)
-                limit_check = 3
-                print(f'Do Check after {do_check} replies pack')
+                    # do bounce, block, limit check in certain moment
+                    do_check = random.randint(3, 10)
+                    limit_check = 3
+                    print(f'Do Check after {do_check} replies pack')
 
-                # reply_pack mean how many replies in reply_seconds
-                reply_pack = 3
-                reply_seconds = 60
+                    # reply_pack mean how many replies in reply_seconds
+                    reply_pack = 3
+                    reply_seconds = 60
 
-                start_datetime = datetime.now()
-                print(f'Start datetime: {start_datetime}')
-                while True:
-                    try:
-                        # Sleep when the limit is exceeded
-                        time.sleep(api.is_limit_exceeded(profile.get('email')))
+                    start_datetime = datetime.now()
+                    print(f'Start datetime: {start_datetime}')
+                    while True:
+                        try:
+                            # Sleep when the limit is exceeded
+                            time.sleep(api.is_limit_exceeded(profile.get('email')))
 
-                        status = api.get_reply_operation_status(reply_id)
-                        print(f'Status => {status}')
-                        if int(status) == 2:
-                            print('paused')
-                            api.set_current_process(profile.get('email'), 'Replies paused...')
-                            time.sleep(10)
-                            continue
-                        elif int(status) == 0:
-                            api.set_current_process(profile.get('email'), 'Replies stopped...')
-                            break
-                        elif int(status) == 1:
-                            print('Reply process')
-                            if count < reply_pack:
-                                api.set_current_process(profile.get('email'), 'Filter By Subject...')
-                                print(f'Filter By this subject: {subject}')
-                                gmail.filter_by_subject(subject=subject)
+                            status = api.get_reply_operation_status(reply_id)
+                            print(f'Status => {status}')
+                            if int(status) == 2:
+                                print('paused')
+                                api.set_current_process(profile.get('email'), 'Replies paused...')
+                                time.sleep(10)
+                                continue
+                            elif int(status) == 0:
+                                api.set_current_process(profile.get('email'), 'Replies stopped...')
+                                break
+                            elif int(status) == 1:
+                                print('Reply process')
+                                if count < reply_pack:
+                                    api.set_current_process(profile.get('email'), 'Filter By Subject...')
+                                    print(f'Filter By this subject: {subject}')
+                                    gmail.filter_by_subject(subject=subject)
 
-                                random_sleep(1, 3)
-                                first_message = gmail.get_message_number(1)
-                                print(f'first msg => {first_message}')
-                                if first_message is not False:
-                                    first_message.click()
-                                    api.set_current_process(profile.get('email'), 'Doing replies...')
-                                    body = api.get_reply_body(reply_id)
-                                    if gmail.reply(body.get('body'), body.get('attachment')):
-                                        api.increase_total_replies(profile.get('email'))
-                                        count = count + 1
-                                else:
-                                    if gmail.is_account_need_rest(True):
-                                        time.sleep(900)
+                                    random_sleep(1, 3)
+                                    first_message = gmail.get_message_number(1)
+                                    print(f'first msg => {first_message}')
+                                    if first_message is not False:
+                                        first_message.click()
+                                        api.set_current_process(profile.get('email'), 'Doing replies...')
+                                        body = api.get_reply_body(reply_id)
+                                        if gmail.reply(body.get('body'), body.get('attachment')):
+                                            api.increase_total_replies(profile.get('email'))
+                                            count = count + 1
                                     else:
-                                        print('Finish!')
-                                        break
+                                        if gmail.is_account_need_rest(True):
+                                            time.sleep(900)
+                                        else:
+                                            print('Finish!')
+                                            break
 
-                            if count == reply_pack:
-                                count = 0
-                                pack_count_for_check = pack_count_for_check + 1
-                                pack_count_for_limit = pack_count_for_limit + 1
+                                if count == reply_pack:
+                                    count = 0
+                                    pack_count_for_check = pack_count_for_check + 1
+                                    pack_count_for_limit = pack_count_for_limit + 1
 
-                                if pack_count_for_limit == limit_check:
-                                    pack_count_for_limit = 0
-                                    api.set_current_process(profile.get('email'), 'Check for bounce messages...')
-                                    print('Check for bounce messages...')
-                                    if gmail.detect_limit():
-                                        print('Enter to if: limit')
-                                        api.set_limit_exceeded(profile.get('email'))
+                                    if pack_count_for_limit == limit_check:
+                                        pack_count_for_limit = 0
+                                        api.set_current_process(profile.get('email'), 'Check for bounce messages...')
+                                        print('Check for bounce messages...')
+                                        if gmail.detect_limit():
+                                            print('Enter to if: limit')
+                                            api.set_limit_exceeded(profile.get('email'))
 
-                                if pack_count_for_check == do_check:
-                                    pack_count_for_check = 0
-                                    do_check = random.randint(3,  10)
-                                    api.set_current_process(profile.get('email'), 'Check if sender was blocked...')
-                                    print('Check if sender was blocked...')
-                                    blocked_senders = gmail.detect_sender_blocked()
-                                    if blocked_senders is not None:
-                                        print('Enter to if: blocked sender')
-                                        for blocked_sender in blocked_senders:
-                                            api.add_blocked_sender(blocked_sender.get('email'),
-                                                                   blocked_sender.get('sender'))
+                                    if pack_count_for_check == do_check:
+                                        pack_count_for_check = 0
+                                        do_check = random.randint(3,  10)
+                                        api.set_current_process(profile.get('email'), 'Check if sender was blocked...')
+                                        print('Check if sender was blocked...')
+                                        blocked_senders = gmail.detect_sender_blocked()
+                                        if blocked_senders is not None:
+                                            print('Enter to if: blocked sender')
+                                            for blocked_sender in blocked_senders:
+                                                api.add_blocked_sender(blocked_sender.get('email'),
+                                                                       blocked_sender.get('sender'))
 
-                                    api.set_current_process(profile.get('email'), 'Check for bounce messages...')
-                                    print('Check for bounce messages...')
-                                    bounces = gmail.detect_bounce()
-                                    if bounces is not None:
-                                        print('Enter to if: bounce')
-                                        for bounce in bounces:
-                                            api.add_bounce(bounce)
+                                        api.set_current_process(profile.get('email'), 'Check for bounce messages...')
+                                        print('Check for bounce messages...')
+                                        bounces = gmail.detect_bounce()
+                                        if bounces is not None:
+                                            print('Enter to if: bounce')
+                                            for bounce in bounces:
+                                                api.add_bounce(bounce)
 
-                                    print(f'Do Check after {do_check} replies pack')
+                                        print(f'Do Check after {do_check} replies pack')
 
-                                # Calculate the difference between first reply and last reply it should be more than 60s
-                                end_datetime = datetime.now()
-                                difference = end_datetime - start_datetime
-                                if difference.total_seconds() < reply_seconds:
-                                    # sleep the rest of seconds
-                                    print(f'Sleeping {reply_seconds - difference.total_seconds()} seconds')
-                                    time.sleep(reply_seconds - difference.total_seconds())
-                                start_datetime = datetime.now()
-                                print(f'End datetime: {end_datetime}')
-                                print(f'--------------------------------')
-                                print(f'Start datetime: {start_datetime}')
-                    except TimeoutError as error:
-                        print('Timeout Error')
+                                    # Calculate the difference between first reply and last reply it should be more than 60s
+                                    end_datetime = datetime.now()
+                                    difference = end_datetime - start_datetime
+                                    if difference.total_seconds() < reply_seconds:
+                                        # sleep the rest of seconds
+                                        print(f'Sleeping {reply_seconds - difference.total_seconds()} seconds')
+                                        time.sleep(reply_seconds - difference.total_seconds())
+                                    start_datetime = datetime.now()
+                                    print(f'End datetime: {end_datetime}')
+                                    print(f'--------------------------------')
+                                    print(f'Start datetime: {start_datetime}')
+                        except TimeoutError as error:
+                            print('Timeout Error')
 
-                time.sleep(5)
-                driver.quit()
-                api.set_current_process(profile.get('email'), '')
-                return True
-            elif login_result == "Captcha":
-                driver.quit()
-                continue
-            else:
-                time.sleep(1)
-                driver.quit()
-                api.set_current_process(profile.get('email'), 'Logged Process terminated, in failed.')
-                return False
-            # except Exception as ex:
-            #     driver.save_screenshot('screen.png')
-            #     with open('logs.txt', 'a+') as f:
-            #         f.write(f'{ex}\n')
-            #         f.flush()
-            #         f.close()
-            #     api.set_current_process(profile.get('email'), 'Error: Somethings wrong!')
-            #     gmail.quit()
-            #     return ex
+                    time.sleep(5)
+                    driver.quit()
+                    api.set_current_process(profile.get('email'), '')
+                    return True
+                elif login_result == "Captcha":
+                    driver.quit()
+                    continue
+                else:
+                    time.sleep(1)
+                    driver.quit()
+                    api.set_current_process(profile.get('email'), 'Logged Process terminated, in failed.')
+                    return False
+            except Exception as ex:
+                driver.save_screenshot('screen.png')
+                with open('logs.txt', 'a+') as f:
+                    f.write(f'{ex}\n')
+                    f.flush()
+                    f.close()
+                api.set_current_process(profile.get('email'), 'Error: Somethings wrong!')
+                gmail.quit()
+                return ex
 
 
 def random_sleep(x, y):
@@ -295,7 +295,7 @@ def get_driver(email):
     options.add_argument(f"--user-data-dir={os.path.join(os.path.dirname(__file__), 'profiles', email)}")
     # options.add_argument(f"--profile-directory=Default")
 
-    options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+    # options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
     # options.add_argument('--no-first-run --no-service-autorun --password-store=basic')
     # options.add_argument(f"--start-maximized")
     # options.add_argument(
@@ -308,8 +308,8 @@ def get_driver(email):
     # options.add_argument('--disable-dev-shm-usage')
 
     options.page_load_strategy = 'eager'
-    driver = uc.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=options)
-    # driver = uc.Chrome(options=options)
+    # driver = uc.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=options)
+    driver = uc.Chrome(options=options)
 
     # stealth(driver,
     #         languages=["en-US", "en"],
