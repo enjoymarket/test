@@ -127,6 +127,7 @@ def do_reply(account_id, reply_id):
             gmail = Gmail(driver, profile.get('email'), profile.get('password'), profile.get('recovery_email'))
             try:
                 api.set_current_process(profile.get('email'), 'do login...')
+                print('do login')
                 gmail.go_to_login_page()
                 login_result = gmail.do_login()
                 if login_result is True:
@@ -161,6 +162,7 @@ def do_reply(account_id, reply_id):
                             time.sleep(api.is_limit_exceeded(profile.get('email')))
 
                             status = api.get_reply_operation_status(reply_id)
+                            print(f'Status => {status}')
                             if int(status) == 2:
                                 print('paused')
                                 api.set_current_process(profile.get('email'), 'Replies paused...')
@@ -173,10 +175,12 @@ def do_reply(account_id, reply_id):
                                 print('Reply process')
                                 if count < reply_pack:
                                     api.set_current_process(profile.get('email'), 'Filter By Subject...')
+                                    print(f'Filter By this subject: {subject}')
                                     gmail.filter_by_subject(subject=subject)
 
                                     random_sleep(1, 3)
                                     first_message = gmail.get_message_number(1)
+                                    print(f'first msg => {first_message}')
                                     if first_message is not False:
                                         first_message.click()
                                         api.set_current_process(profile.get('email'), 'Doing replies...')
@@ -199,22 +203,28 @@ def do_reply(account_id, reply_id):
                                     if pack_count_for_limit == limit_check:
                                         pack_count_for_limit = 0
                                         api.set_current_process(profile.get('email'), 'Check for bounce messages...')
+                                        print('Check for bounce messages...')
                                         if gmail.detect_limit():
+                                            print('Enter to if: limit')
                                             api.set_limit_exceeded(profile.get('email'))
 
                                     if pack_count_for_check == do_check:
                                         pack_count_for_check = 0
                                         do_check = random.randint(3,  10)
                                         api.set_current_process(profile.get('email'), 'Check if sender was blocked...')
+                                        print('Check if sender was blocked...')
                                         blocked_senders = gmail.detect_sender_blocked()
                                         if blocked_senders is not None:
+                                            print('Enter to if: blocked sender')
                                             for blocked_sender in blocked_senders:
                                                 api.add_blocked_sender(blocked_sender.get('email'),
                                                                        blocked_sender.get('sender'))
 
                                         api.set_current_process(profile.get('email'), 'Check for bounce messages...')
+                                        print('Check for bounce messages...')
                                         bounces = gmail.detect_bounce()
                                         if bounces is not None:
+                                            print('Enter to if: bounce')
                                             for bounce in bounces:
                                                 api.add_bounce(bounce)
 
