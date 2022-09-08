@@ -60,8 +60,8 @@ def logs():
 
 @app.get("/login/{id}")
 async def login(id: int, background_tasks: BackgroundTasks):
-    # background_tasks.add_task(do_login, id)
-    do_login(id)
+    background_tasks.add_task(do_login, id)
+    # do_login(id)
     return {"message": "The operation will be processed in the background"}
 
 
@@ -112,8 +112,8 @@ def do_login(id):
 
 @app.get("/reply/{account_id}/{reply_id}")
 async def reply(account_id, reply_id, background_tasks: BackgroundTasks):
-    # background_tasks.add_task(do_reply, account_id, reply_id)
-    do_reply(account_id, reply_id)
+    background_tasks.add_task(do_reply, account_id, reply_id)
+    # do_reply(account_id, reply_id)
     return {"message": "The operation will be processed in the background"}
 
 
