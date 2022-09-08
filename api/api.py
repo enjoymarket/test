@@ -110,6 +110,4 @@ def set_limit_exceeded(email):
 
 def is_limit_exceeded(email):
     link = f"{os.getenv('MASTER_API')}/is-limit-exceeded/{email}"
-    response = requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text
-    print(response)
-    return response
+    return int(requests.get(link, headers={"APP_KEY": os.getenv('APP_KEY')}).text)
