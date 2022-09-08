@@ -256,53 +256,15 @@ def do_reply(account_id, reply_id):
                     driver.quit()
                     api.set_current_process(profile.get('email'), 'Logged Process terminated, in failed.')
                     return False
-            except:
+            except Exception as ex:
                 driver.save_screenshot('screen.png')
+                with open('logs.txt', 'a+') as f:
+                    f.write(f'{ex}\n')
+                    f.flush()
+                    f.close()
+                api.set_current_process(profile.get('email'), 'Error: Somethings wrong!')
                 gmail.quit()
-
-
-# def login(profile):
-#     email, password, recovery_email = profile.split(';')
-#     while True:
-#         driver = get_driver(email)
-#         gmail = Gmail(driver, email, password, recovery_email)
-#         gmail.go_to_login_page()
-#         login_result = gmail.do_login()
-#         if login_result is True:
-#             time.sleep(1)
-#             return gmail
-#         elif login_result == "Captcha":
-#             driver.quit()
-#             continue
-#         else:
-#             time.sleep(1)
-#             driver.quit()
-#             return False
-
-
-def get_creatives():
-    rootdir = 'creatives'
-    creatives = []
-    for file in os.listdir(rootdir):
-        d = os.path.join(rootdir, file)
-        if os.path.isdir(d):
-            try:
-                subject = open(f'{os.path.join(os.path.dirname(__file__), d, "subject.txt")}').read()
-                creative = open(f'{os.path.join(os.path.dirname(__file__), d, "creative.txt")}').read()
-                creatives.append({
-                    'subject': subject,
-                    'creative': creative
-                })
-            except:
-                pass
-    return creatives
-
-
-def get_creative(creatives, subject):
-    for creative in creatives:
-        if creative.get('subject') in subject:
-            return creative.get('creative')
-    return None
+                return ex
 
 
 def random_sleep(x, y):
@@ -333,7 +295,7 @@ def get_driver(email):
     options.add_argument(f"--user-data-dir={os.path.join(os.path.dirname(__file__), 'profiles', email)}")
     # options.add_argument(f"--profile-directory=Default")
 
-    # options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+    options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
     # options.add_argument('--no-first-run --no-service-autorun --password-store=basic')
     # options.add_argument(f"--start-maximized")
     # options.add_argument(
@@ -346,8 +308,8 @@ def get_driver(email):
     # options.add_argument('--disable-dev-shm-usage')
 
     options.page_load_strategy = 'eager'
-    # driver = uc.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=options)
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=options)
+    # driver = uc.Chrome(options=options)
 
     # stealth(driver,
     #         languages=["en-US", "en"],
